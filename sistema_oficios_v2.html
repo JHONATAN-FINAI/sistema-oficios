@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Ofícios - SCFC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    const firebaseConfig = { apiKey: "AIzaSyCRKwo4jsEdOLmnskg9GfwTxMgsERAiMVE", authDomain: "sistema-de-oficio-scfc.firebaseapp.com", projectId: "sistema-de-oficio-scfc", storageBucket: "sistema-de-oficio-scfc.firebasestorage.app", messagingSenderId: "377698743258", appId: "1:377698743258:web:8399595743e1604e3dc6e3" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+    window.db = db; window.auth = auth;
+    window.firestore = { collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc };
+    document.getElementById('btnLoginGoogle')?.addEventListener('click', () => signInWithPopup(auth, provider).catch(e => alert("Erro: " + e.message)));
+    document.getElementById('btnLogout')?.addEventListener('click', () => { if (confirm("Sair?")) signOut(auth); });
+    onAuthStateChanged(auth, (user) => {
+      document.getElementById('loginScreen').style.display = user ? 'none' : 'flex';
+      document.getElementById('appContent').style.display = user ? 'block' : 'none';
+      if (user) { document.getElementById('userInfo').style.display = 'flex'; document.getElementById('userEmail').textContent = user.email; if (window.carregarDadosOnline) window.carregarDadosOnline(); }
+    });
+  </script>
+  <style>
+    :root{--primary:#1a4d7c;--primary-dark:#0d3a5c;--border:#d1d5db;--border-light:#e5e7eb;--bg:#f8fafc;--bg-card:#fff;--text:#1f2937;--text-muted:#6b7280;--success:#059669;--warning:#d97706;--error:#dc2626;--radius:6px;--shadow:0 1px 3px rgba(0,0,0,0.1);--font-oficio:'Carlito','Calibri',sans-serif}
+    *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    #loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;z-index:9999}
+    .login-card{background:#fff;padding:2.5rem;border-radius:12px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2);max-width:380px}
+    .login-card h1{color:var(--primary);margin-bottom:.5rem;font-size:1.5rem}.login-card p{color:var(--text-muted);margin-bottom:1.5rem}
+    .login-btn{background:#4285F4;color:#fff;border:none;padding:.875rem 1.5rem;border-radius:var(--radius);font-size:1rem;cursor:pointer;display:inline-flex;align-items:center;gap:10px}
+    .login-btn:hover{background:#357ae8}#appContent{display:none}
+    .user-info{position:fixed;top:1rem;right:1.5rem;display:none;align-items:center;gap:1rem;background:#fff;padding:.5rem 1rem;border-radius:20px;box-shadow:var(--shadow);font-size:.875rem;z-index:100}
+    .user-info button{background:none;border:none;color:var(--error);cursor:pointer;font-weight:600}
+    .container{max-width:1400px;margin:0 auto;padding:1.5rem}
+    .header{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:1.5rem 2rem;border-radius:10px;margin-bottom:1.5rem}
+    .header h1{font-size:1.75rem;margin-bottom:.25rem}.header .subtitle{opacity:.9}.header .meta{opacity:.8;font-size:.85rem;margin-top:.25rem}
+    .tabs-container{background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);border:1px solid var(--border-light);overflow:hidden}
+    .tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--border-light)}
+    .tab{flex:1;padding:1rem;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-weight:500;color:var(--text-muted);transition:all .2s}
+    .tab:hover{color:var(--primary)}.tab.active{color:var(--primary);border-bottom-color:var(--primary);background:var(--bg-card)}
+    .tab-content{display:none;padding:1.5rem}.tab-content.active{display:block}
+    .form-section{background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.25rem}
+    .section-title{font-size:1.1rem;font-weight:600;color:var(--primary);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:2px solid var(--border-light)}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+    .form-group{display:flex;flex-direction:column}.form-group.full-width{grid-column:1/-1}
+    .form-label{font-weight:500;margin-bottom:.375rem;font-size:.875rem}.form-label.required::after{content:" *";color:var(--error)}
+    .form-input,.form-select,.form-textarea{padding:.625rem .875rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.95rem;font-family:inherit;background:var(--bg-card)}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,77,124,.1)}
+    .error-message{color:var(--error);font-size:.8rem;margin-top:.25rem;display:none}
+    .editor-wrapper{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+    .editor-toolbar{display:flex;flex-wrap:wrap;gap:.25rem;padding:.5rem;background:var(--bg);border-bottom:1px solid var(--border-light);align-items:center}
+    .toolbar-group{display:flex;gap:2px;padding:0 .5rem;border-right:1px solid var(--border-light)}.toolbar-group:last-child{border-right:none}
+    .toolbar-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:4px;cursor:pointer;font-size:.875rem;transition:all .15s}
+    .toolbar-btn:hover{background:var(--border-light)}.toolbar-btn.active{background:var(--primary);color:#fff}
+    .toolbar-select{height:32px;padding:0 .5rem;border:1px solid var(--border);border-radius:4px;font-size:.8rem;background:#fff}
+    .toolbar-label{font-size:.75rem;color:var(--text-muted);padding:0 .25rem}
+    
+    /* EDITOR - SEM RECUO AUTOMÁTICO */
+    .editor-content{min-height:280px;max-height:450px;overflow-y:auto;padding:1.5rem;font-family:var(--font-oficio);font-size:12pt;line-height:1.5;outline:none}
+    .editor-content p{margin:0 0 6pt;text-align:justify}
+    .editor-content table{width:auto;max-width:100%;border-collapse:collapse;margin:12pt 0;font-size:11pt;table-layout:fixed}
+    .editor-content th,.editor-content td{border:1px solid #000;padding:6pt 8pt;text-indent:0!important;vertical-align:top;word-wrap:break-word}
+    .editor-content th{background:#f0f0f0;font-weight:bold;text-align:center}
+    .editor-content td p,.editor-content th p{text-indent:0!important;margin:0}
+    
+    /* Redimensionamento de colunas */
+    .editor-content table.resizable{position:relative}
+    .col-resize-handle{position:absolute;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:10}
+    .col-resize-handle:hover,.col-resize-handle.active{background:var(--primary);opacity:0.5}
+    .row-resize-handle{position:absolute;left:0;height:5px;width:100%;cursor:row-resize;background:transparent;z-index:10}
+    .row-resize-handle:hover,.row-resize-handle.active{background:var(--primary);opacity:0.5}
+    
+    /* Tabela selecionada */
+    .editor-content table.selected{outline:2px solid var(--primary);outline-offset:2px}
+    
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.625rem 1.25rem;border:none;border-radius:var(--radius);font-size:.9rem;font-weight:500;cursor:pointer;transition:all .2s}
+    .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--shadow)}.btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn-primary{background:var(--primary);color:#fff}.btn-success{background:var(--success);color:#fff}
+    .btn-warning{background:var(--warning);color:#fff}.btn-error{background:var(--error);color:#fff}
+    .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border)}.btn-sm{padding:.375rem .75rem;font-size:.8rem}
+    .button-group{display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;justify-content:center}
+    .selected-orgs{margin-top:1rem;display:flex;flex-direction:column;gap:.5rem}
+    .selected-org-item{display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border-light)}
+    .selected-org-name{font-weight:500;color:var(--primary)}.selected-org-address{font-size:.85rem;color:var(--text-muted)}
+    .btn-remove{background:none;border:none;color:var(--error);cursor:pointer;font-size:1.25rem}
+    .assinaturas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-top:.75rem}
+    .assinatura-item{display:flex;align-items:center;gap:.75rem;padding:.75rem;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer}
+    .assinatura-item:hover{border-color:var(--primary)}.assinatura-item input{width:18px;height:18px}
+    .assinatura-nome{font-weight:500}.assinatura-cargo{font-size:.85rem;color:var(--text-muted)}
+    .data-table{width:100%;border-collapse:collapse;font-size:.9rem}
+    .data-table th,.data-table td{padding:.75rem 1rem;text-align:left;border-bottom:1px solid var(--border-light)}
+    .data-table th{background:var(--bg);font-weight:600}.data-table tr:hover{background:var(--bg)}
+    .data-table .actions{display:flex;gap:.5rem;justify-content:center}
+    .preview-section{display:none;margin-top:1.5rem}.preview-section.show{display:block}
+    .preview-container{background:#525659;padding:2rem;border-radius:10px;max-height:85vh;overflow-y:auto}
+    .preview-pages{display:flex;flex-direction:column;align-items:center;gap:20px}
+    
+    /* PÁGINA A4 FLEXÍVEL - cresce conforme conteúdo */
+    .oficio-page-flex{width:210mm;min-height:297mm;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.3);font-family:var(--font-oficio);font-size:12pt;line-height:1.5;color:#000;position:relative;padding:0;margin:0 auto}
+    .oficio-header-flex{height:50mm;padding:20mm 15mm 0 30mm;display:flex;align-items:flex-start;justify-content:center}
+    .oficio-header-flex img{max-width:100%;max-height:28mm;object-fit:contain}
+    .oficio-body-flex{padding:0 15mm 25mm 30mm;min-height:calc(297mm - 50mm - 20mm)}
+    .oficio-footer-flex{padding:0 15mm 5mm 30mm;border-top:1px solid #000;font-size:10pt}
+    .oficio-footer-flex .footer-linha1{font-weight:bold}
+    
+    /* Manter compatibilidade com classes antigas */
+    .oficio-page{width:210mm;height:297mm;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.3);font-family:var(--font-oficio);font-size:12pt;line-height:1.5;color:#000;position:relative;flex-shrink:0;overflow:hidden;page-break-after:always}
+    .oficio-header{position:absolute;top:0;left:0;right:0;height:50mm;padding:20mm 15mm 0 30mm;display:flex;align-items:flex-start;justify-content:center}
+    .oficio-header img{max-width:100%;max-height:28mm;object-fit:contain}
+    .oficio-body{position:absolute;top:50mm;left:30mm;right:15mm;bottom:20mm;overflow:hidden}
+    .oficio-numero{font-weight:bold;margin-bottom:6pt}
+    .oficio-data{text-align:right;margin-bottom:18pt}
+    .oficio-destinatario{margin-bottom:18pt;line-height:1.3}
+    .oficio-destinatario-item{margin-bottom:12pt}
+    .oficio-assunto{margin-bottom:18pt}
+    .oficio-vocativo{margin-bottom:12pt}
+    .oficio-content p{margin:0 0 6pt;text-align:justify}
+    .oficio-content table{width:100%;max-width:100%;border-collapse:collapse;margin:12pt 0;font-size:11pt;table-layout:fixed}
+    .oficio-content th,.oficio-content td{border:1px solid #000;padding:6pt 8pt;text-indent:0!important;word-wrap:break-word}
+    .oficio-content th{background:#f0f0f0;font-weight:bold;text-align:center}
+    .oficio-content td p,.oficio-content th p{text-indent:0!important;margin:0}
+    .oficio-content ul,.oficio-content ol{margin:6pt 0 6pt 2cm}
+    .oficio-content li{margin-bottom:3pt}
+    .oficio-fecho{margin-top:18pt;text-indent:2.5cm}
+    .oficio-assinatura{text-align:center;margin-top:24pt}
+    .assinatura-bloco{margin-bottom:30pt}
+    .assinatura-bloco:last-child{margin-bottom:0}
+    .assinatura-linha{width:280px;margin:0 auto 6pt;border-top:1px solid #000;padding-top:6pt}
+    .assinatura-nome-preview{font-weight:bold;text-transform:uppercase}
+    .oficio-footer{position:absolute;bottom:0;left:30mm;right:15mm;height:20mm;border-top:1px solid #000;display:flex;flex-direction:column;justify-content:center;font-size:10pt}
+    .footer-linha1{font-weight:bold}
+    .page-indicator{text-align:center;color:#fff;font-size:.9rem;padding:.5rem;background:rgba(0,0,0,.3);border-radius:4px;margin-top:10px}
+    
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+    .modal.show{display:flex}
+    .modal-content{background:#fff;border-radius:10px;width:90%;max-width:600px;max-height:90vh;overflow-y:auto}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-light)}
+    .modal-title{font-size:1.1rem;font-weight:600;color:var(--primary)}
+    .modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted)}.modal-close:hover{color:var(--error)}
+    .modal-body{padding:1.5rem}.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border-light);display:flex;gap:.75rem;justify-content:flex-end}
+    .toast{position:fixed;bottom:2rem;right:2rem;padding:1rem 1.5rem;border-radius:var(--radius);color:#fff;font-weight:500;box-shadow:0 10px 20px rgba(0,0,0,.2);transform:translateX(120%);transition:transform .3s;z-index:2000}
+    .toast.show{transform:translateX(0)}.toast.success{background:var(--success)}.toast.error{background:var(--error)}.toast.warning{background:var(--warning)}
+    .context-menu{position:fixed;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 20px rgba(0,0,0,.15);z-index:3000;min-width:200px;display:none}
+    .context-menu.show{display:block}.context-menu-item{padding:.5rem 1rem;cursor:pointer;font-size:.9rem}.context-menu-item:hover{background:var(--bg)}
+    .context-menu-divider{height:1px;background:var(--border-light);margin:.25rem 0}
+    .context-menu-header{padding:.5rem 1rem;font-weight:600;font-size:.8rem;color:var(--text-muted);background:var(--bg)}
+    .loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);display:none;align-items:center;justify-content:center;z-index:5000;flex-direction:column;gap:1rem}
+    .loading-overlay.show{display:flex}
+    .loading-spinner{width:50px;height:50px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
+    #measureContainer{position:absolute;left:-9999px;top:0;width:165mm;font-family:var(--font-oficio);font-size:12pt;line-height:1.5;visibility:hidden}
+    #measureContainer p{margin:0 0 6pt;text-align:justify}
+    #measureContainer table{width:100%;border-collapse:collapse;margin:12pt 0;font-size:11pt}
+    #measureContainer th,#measureContainer td{border:1px solid #000;padding:6pt 8pt;text-indent:0!important}
+    
+    @media print{
+      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+      body{background:#fff!important;margin:0!important;padding:0!important}
+      
+      /* Esconder interface */
+      #loginScreen,#loadingOverlay,#measureContainer,.header,.tabs,.form-section,.button-group,.user-info,.toast,.page-indicator,.context-menu,.modal,.tabs-container>.tabs,.editor-wrapper{display:none!important}
+      
+      #appContent{display:block!important}
+      .container{padding:0!important;max-width:none!important}
+      .tabs-container{display:block!important;border:none!important;box-shadow:none!important;background:none!important}
+      .tab-content{display:none!important;padding:0!important}
+      #gerador{display:block!important}
+      .preview-section{display:block!important;margin:0!important}
+      .preview-container{background:none!important;padding:0!important;max-height:none!important;overflow:visible!important;border-radius:0!important}
+      .preview-pages{display:block!important;gap:0!important}
+      
+      /* Página A4 */
+      .oficio-page{
+        width:210mm!important;
+        height:297mm!important;
+        box-shadow:none!important;
+        margin:0!important;
+        padding:0!important;
+        page-break-after:always!important;
+        page-break-inside:avoid!important;
+        position:relative!important;
+        overflow:hidden!important;
+        display:block!important;
+      }
+      .oficio-page:last-child{
+        page-break-after:auto!important;
+      }
+      
+      /* Posicionamento absoluto dos elementos */
+      .oficio-header{
+        position:absolute!important;
+        top:0!important;
+        left:0!important;
+        right:0!important;
+        height:50mm!important;
+        padding:20mm 15mm 0 30mm!important;
+        display:flex!important;
+        align-items:flex-start!important;
+        justify-content:center!important;
+      }
+      .oficio-header img{
+        max-width:100%!important;
+        max-height:28mm!important;
+        object-fit:contain!important;
+      }
+      .oficio-body{
+        position:absolute!important;
+        top:50mm!important;
+        left:30mm!important;
+        right:15mm!important;
+        bottom:20mm!important;
+        overflow:hidden!important;
+      }
+      .oficio-footer{
+        position:absolute!important;
+        bottom:0!important;
+        left:30mm!important;
+        right:15mm!important;
+        height:20mm!important;
+        border-top:1px solid #000!important;
+        display:flex!important;
+        flex-direction:column!important;
+        justify-content:center!important;
+        font-size:10pt!important;
+      }
+      
+      @page{
+        margin:0!important;
+        size:A4 portrait!important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="measureContainer"></div>
+  
+  <div id="loginScreen"><div class="login-card"><h1>Sistema de Ofícios</h1><p>SCFC - Rondonópolis</p><button class="login-btn" id="btnLoginGoogle"><svg viewBox="0 0 18 18" width="18" height="18"><path fill="#fff" d="M0 0h18v18H0z"/><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18h-2.908c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 12.965A5.422 5.422 0 0 1 3.682 11c0-.693.12-1.353.332-1.996l.083-.267H.957A8.996 8.996 0 0 0 0 11c0 1.386.333 2.686.917 3.865l3.047-1.9z" fill="#FBBC05"/><path d="M9 3.88c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.938L3.964 6.95C4.672 4.814 6.656 3.23 9 3.23V3.88z" fill="#EA4335"/></svg>Entrar com Google</button></div></div>
+  <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div>Gerando documento...</div></div>
+  
+  <div id="appContent">
+    <div class="user-info" id="userInfo"><span id="userEmail"></span><button id="btnLogout">Sair</button></div>
+    <div class="container">
+      <header class="header"><h1>Sistema de Ofícios SCFC</h1><p class="subtitle">Superintendência de Controle de Frotas e Combustível</p><p class="meta">Secretaria Municipal de Administração • Rondonópolis - MT</p></header>
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab active" data-tab="gerador">📝 Gerar Ofício</button>
+          <button class="tab" data-tab="historico">📋 Histórico</button>
+          <button class="tab" data-tab="orgaos">🏢 Órgãos</button>
+          <button class="tab" data-tab="assinaturas">✍️ Assinaturas</button>
+        </div>
+        <div id="gerador" class="tab-content active">
+          <div class="form-section"><h3 class="section-title">📋 Dados do Ofício</h3><div class="form-grid"><div class="form-group"><label class="form-label">Número</label><input type="text" id="numeroOficio" class="form-input" readonly style="background:#f3f4f6;"></div><div class="form-group"><label class="form-label">Data</label><input type="date" id="dataOficioInput" class="form-input"></div><div class="form-group"><label class="form-label">Local</label><input type="text" id="localOficio" value="Rondonópolis" class="form-input"></div></div></div>
+          <div class="form-section"><h3 class="section-title">🏢 Destinatário(s)</h3><div class="form-grid"><div class="form-group"><label class="form-label">Tratamento</label><select id="tratamento" class="form-select"><option value="Ao Senhor">Ao Senhor</option><option value="À Senhora">À Senhora</option><option value="A Sua Excelência o Senhor">A Sua Excelência o Senhor</option><option value="A Sua Excelência a Senhora">A Sua Excelência a Senhora</option></select></div><div class="form-group"><label class="form-label">Adicionar Órgão</label><div style="display:flex;gap:.5rem;"><select id="orgaoDestinatario" class="form-select" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-primary btn-sm" onclick="adicionarOrgaoAoOficio()">➕</button></div></div></div><div id="selectedOrgaosContainer" class="selected-orgs"></div><div class="error-message" id="orgaoError">Adicione pelo menos um destinatário</div></div>
+          <div class="form-section"><h3 class="section-title">✍️ Assinaturas</h3><div id="assinaturasContainer" class="assinaturas-grid"></div></div>
+          <div class="form-section"><h3 class="section-title">📄 Conteúdo</h3><div class="form-group"><label class="form-label required">Assunto</label><input type="text" id="assuntoOficio" class="form-input" placeholder="Digite o assunto..." maxlength="200"><div class="error-message" id="assuntoError">Digite o assunto</div></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Vocativo</label><input type="text" id="vocativoOficio" class="form-input" value="Senhor(a),"></div><div class="form-group full-width" style="margin-top:1rem;"><label class="form-label required">Texto</label><div class="editor-wrapper"><div class="editor-toolbar"><div class="toolbar-group"><button type="button" class="toolbar-btn" data-cmd="bold" title="Negrito"><b>N</b></button><button type="button" class="toolbar-btn" data-cmd="italic" title="Itálico"><i>I</i></button><button type="button" class="toolbar-btn" data-cmd="underline" title="Sublinhado"><u>S</u></button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" data-cmd="justifyLeft">⬅</button><button type="button" class="toolbar-btn" data-cmd="justifyCenter">↔</button><button type="button" class="toolbar-btn" data-cmd="justifyRight">➡</button><button type="button" class="toolbar-btn active" data-cmd="justifyFull">☰</button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" onclick="aplicarRecuo()" title="Recuo 1ª linha (2,5cm)">¶</button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" data-cmd="insertUnorderedList">•</button><button type="button" class="toolbar-btn" data-cmd="insertOrderedList">1.</button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" onclick="abrirModalTabela()" title="Inserir Tabela">📊</button></div><div class="toolbar-group"><select class="toolbar-select" id="modeloSelect"><option value="">Modelos...</option><option value="comunicacao">Comunicação</option><option value="solicitacao">Solicitação</option><option value="encaminhamento">Encaminhamento</option></select></div></div><div id="editorContent" class="editor-content" contenteditable="true"><p>Informo que...</p></div></div><div class="error-message" id="textoError">Digite o texto</div></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Fecho</label><select id="fechoOficio" class="form-select"><option value="Atenciosamente,">Atenciosamente,</option><option value="Respeitosamente,">Respeitosamente,</option></select></div></div>
+          <div class="button-group"><button class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar</button><button class="btn btn-primary" onclick="visualizarPrevia()">👁️ Visualizar</button><button class="btn btn-success" onclick="gerarOficio()">✅ Gerar e Salvar</button></div>
+          <div id="previewSection" class="preview-section"><div class="preview-container"><div id="previewPages" class="preview-pages"></div></div><div class="button-group"><button class="btn btn-secondary" onclick="editarOficio()">✏️ Editar</button><button class="btn btn-warning" onclick="imprimirOficio()">🖨️ Imprimir</button><button class="btn btn-success" onclick="gerarPDF()">📄 Baixar PDF</button></div></div>
+        </div>
+        <div id="historico" class="tab-content"><div style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;"><input type="text" id="searchHistorico" placeholder="🔍 Buscar..." class="form-input" style="max-width:300px;"><select id="filterAno" class="form-select" style="max-width:150px;"><option value="">Todos</option></select></div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Número</th><th>Data</th><th>Protocolo</th><th>Destinatário</th><th>Assunto</th><th style="text-align:center;">Ações</th></tr></thead><tbody id="historicoBody"></tbody></table></div></div>
+        <div id="orgaos" class="tab-content"><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="abrirModalOrgao()">➕ Adicionar Órgão</button></div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Código</th><th>Nome</th><th>Endereço</th><th style="text-align:center;">Ações</th></tr></thead><tbody id="orgaosBody"></tbody></table></div></div>
+        <div id="assinaturas" class="tab-content"><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="abrirModalAssinatura()">➕ Adicionar Assinatura</button></div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Nome</th><th>Cargo</th><th>Ordem</th><th style="text-align:center;">Ações</th></tr></thead><tbody id="assinaturasBody"></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="tabelaModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title">📊 Inserir Tabela</h3><button class="modal-close" onclick="fecharModal('tabelaModal')">&times;</button></div><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">Colunas</label><input type="number" id="numColunas" class="form-input" min="1" max="10" value="3"></div><div class="form-group"><label class="form-label">Linhas</label><input type="number" id="numLinhas" class="form-input" min="1" max="50" value="3"></div></div><div class="form-group" style="margin-top:1rem;"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;"><input type="checkbox" id="tabelaComCabecalho" checked><span>Primeira linha como cabeçalho</span></label></div><p style="margin-top:1rem;font-size:.85rem;color:var(--text-muted);">💡 Clique direito na tabela para opções de ajuste</p></div><div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal('tabelaModal')">Cancelar</button><button class="btn btn-primary" onclick="inserirTabela()">Inserir</button></div></div></div>
+  <div id="orgaoModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title" id="orgaoModalTitle">🏢 Órgão</h3><button class="modal-close" onclick="fecharModal('orgaoModal')">&times;</button></div><div class="modal-body"><input type="hidden" id="editOrgaoIndex" value="-1"><div class="form-group"><label class="form-label required">Código</label><input type="text" id="editCodigoOrgao" class="form-input" placeholder="Ex: 001"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label required">Nome</label><input type="text" id="editNomeOrgao" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Responsável</label><input type="text" id="editResponsavelOrgao" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Cargo</label><input type="text" id="editCargoResponsavel" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label required">Endereço</label><textarea id="editEnderecoOrgao" class="form-textarea" rows="3"></textarea></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal('orgaoModal')">Cancelar</button><button class="btn btn-success" onclick="salvarOrgao()">Salvar</button></div></div></div>
+  <div id="assinaturaModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title" id="assinaturaModalTitle">✍️ Assinatura</h3><button class="modal-close" onclick="fecharModal('assinaturaModal')">&times;</button></div><div class="modal-body"><input type="hidden" id="editAssinaturaId" value=""><div class="form-group"><label class="form-label required">Nome</label><input type="text" id="editNomeAssinatura" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label required">Cargo</label><input type="text" id="editCargoAssinatura" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Ordem</label><input type="number" id="editOrdemAssinatura" class="form-input" min="1"></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal('assinaturaModal')">Cancelar</button><button class="btn btn-success" onclick="salvarAssinatura()">Salvar</button></div></div></div>
+  
+  <!-- CONTEXT MENU MELHORADO -->
+  <div id="tableContextMenu" class="context-menu">
+    <div class="context-menu-header">📐 Ajustar Tabela</div>
+    <div class="context-menu-item" onclick="tableAction('fitToPage')">↔️ Ajustar à largura da página</div>
+    <div class="context-menu-item" onclick="tableAction('fitToContent')">📏 Ajustar ao conteúdo</div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-header">➕ Adicionar</div>
+    <div class="context-menu-item" onclick="tableAction('addRowAbove')">Linha acima</div>
+    <div class="context-menu-item" onclick="tableAction('addRowBelow')">Linha abaixo</div>
+    <div class="context-menu-item" onclick="tableAction('addColLeft')">Coluna à esquerda</div>
+    <div class="context-menu-item" onclick="tableAction('addColRight')">Coluna à direita</div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-header">🗑️ Excluir</div>
+    <div class="context-menu-item" onclick="tableAction('deleteRow')">Excluir linha</div>
+    <div class="context-menu-item" onclick="tableAction('deleteCol')">Excluir coluna</div>
+    <div class="context-menu-item" style="color:var(--error)" onclick="tableAction('deleteTable')">Excluir tabela</div>
+  </div>
+  
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ==================== VARIÁVEIS GLOBAIS ====================
+    let proximoNumero = 1;
+    let historico = [];
+    let orgaos = [];
+    let assinaturas = [];
+    let selectedOrgaosList = [];
+    let currentTableCell = null;
+    let currentTable = null;
+    let isResizing = false;
+    let resizeStartX = 0;
+    let resizeStartY = 0;
+    let resizeCol = null;
+    let resizeRow = null;
+
+    const PAGE_HEIGHT_MM = 297;
+    const HEADER_HEIGHT_MM = 50;
+    const FOOTER_HEIGHT_MM = 20;
+    const CONTENT_HEIGHT_MM = PAGE_HEIGHT_MM - HEADER_HEIGHT_MM - FOOTER_HEIGHT_MM;
+    const MM_TO_PX = 3.7795275591;
+    const CONTENT_HEIGHT_PX = CONTENT_HEIGHT_MM * MM_TO_PX;
+    
+    // Largura útil da página em pixels (165mm = 210 - 30 - 15)
+    const PAGE_CONTENT_WIDTH_MM = 165;
+    const PAGE_CONTENT_WIDTH_PX = PAGE_CONTENT_WIDTH_MM * MM_TO_PX;
+
+    // ==================== INICIALIZAÇÃO ====================
+    document.addEventListener('DOMContentLoaded', () => {
+      initTabs();
+      initEditor();
+      initDateField();
+      atualizarCamposAutomaticos();
+    });
+
+    function initTabs() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById(tab.dataset.tab).classList.add('active');
+        });
+      });
+    }
+
+    function initEditor() {
+      const editor = document.getElementById('editorContent');
+      
+      document.querySelectorAll('.toolbar-btn[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', () => { 
+          document.execCommand(btn.dataset.cmd, false, null); 
+          editor.focus(); 
+        });
+      });
+      
+      document.getElementById('modeloSelect').addEventListener('change', (e) => {
+        if (e.target.value) { inserirModelo(e.target.value); e.target.value = ''; }
+      });
+      
+      editor.addEventListener('keydown', (e) => {
+        if (e.ctrlKey) {
+          if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
+          if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+          if (e.key === 'u') { e.preventDefault(); document.execCommand('underline'); }
+        }
+      });
+      
+      // Context menu para tabelas
+      editor.addEventListener('contextmenu', (e) => {
+        const cell = e.target.closest('td, th');
+        const table = e.target.closest('table');
+        if (cell && table) {
+          e.preventDefault();
+          currentTableCell = cell;
+          currentTable = table;
+          
+          // Destacar tabela selecionada
+          editor.querySelectorAll('table').forEach(t => t.classList.remove('selected'));
+          table.classList.add('selected');
+          
+          const menu = document.getElementById('tableContextMenu');
+          menu.style.left = e.clientX + 'px';
+          menu.style.top = e.clientY + 'px';
+          menu.classList.add('show');
+        }
+      });
+      
+      // Fechar menu ao clicar fora
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.context-menu')) {
+          document.getElementById('tableContextMenu').classList.remove('show');
+        }
+      });
+      
+      // Remover recuo de parágrafo ao digitar em células
+      editor.addEventListener('input', (e) => {
+        const cell = e.target.closest('td, th');
+        if (cell) {
+          // Remover text-indent de qualquer elemento dentro da célula
+          cell.querySelectorAll('p').forEach(p => {
+            p.style.textIndent = '0';
+            p.style.margin = '0';
+          });
+        }
+      });
+      
+      // Inicializar redimensionamento de tabelas
+      initTableResize();
+    }
+
+    // ==================== REDIMENSIONAMENTO DE TABELAS ====================
+    function initTableResize() {
+      const editor = document.getElementById('editorContent');
+      
+      // Double-click para editar largura da coluna
+      editor.addEventListener('dblclick', (e) => {
+        const cell = e.target.closest('td, th');
+        if (cell) {
+          const table = cell.closest('table');
+          // Auto-ajustar coluna ao conteúdo
+          const colIndex = cell.cellIndex;
+          autoFitColumn(table, colIndex);
+        }
+      });
+      
+      // Drag para redimensionar (nas bordas das células)
+      editor.addEventListener('mousedown', (e) => {
+        const cell = e.target.closest('td, th');
+        if (!cell) return;
+        
+        const rect = cell.getBoundingClientRect();
+        const isRightEdge = e.clientX > rect.right - 8;
+        const isBottomEdge = e.clientY > rect.bottom - 8;
+        
+        if (isRightEdge) {
+          isResizing = true;
+          resizeStartX = e.clientX;
+          resizeCol = cell.cellIndex;
+          currentTable = cell.closest('table');
+          document.body.style.cursor = 'col-resize';
+          e.preventDefault();
+        } else if (isBottomEdge) {
+          isResizing = true;
+          resizeStartY = e.clientY;
+          resizeRow = cell.closest('tr').rowIndex;
+          currentTable = cell.closest('table');
+          document.body.style.cursor = 'row-resize';
+          e.preventDefault();
+        }
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isResizing || !currentTable) return;
+        
+        if (resizeCol !== null) {
+          const diff = e.clientX - resizeStartX;
+          const cells = currentTable.querySelectorAll(`tr td:nth-child(${resizeCol + 1}), tr th:nth-child(${resizeCol + 1})`);
+          cells.forEach(cell => {
+            const currentWidth = cell.offsetWidth;
+            const newWidth = Math.max(30, currentWidth + diff);
+            cell.style.width = newWidth + 'px';
+          });
+          resizeStartX = e.clientX;
+        }
+        
+        if (resizeRow !== null) {
+          const diff = e.clientY - resizeStartY;
+          const row = currentTable.rows[resizeRow];
+          if (row) {
+            const currentHeight = row.offsetHeight;
+            const newHeight = Math.max(20, currentHeight + diff);
+            row.style.height = newHeight + 'px';
+          }
+          resizeStartY = e.clientY;
+        }
+      });
+      
+      document.addEventListener('mouseup', () => {
+        if (isResizing) {
+          isResizing = false;
+          resizeCol = null;
+          resizeRow = null;
+          document.body.style.cursor = '';
+        }
+      });
+      
+      // Mudar cursor nas bordas
+      editor.addEventListener('mousemove', (e) => {
+        if (isResizing) return;
+        
+        const cell = e.target.closest('td, th');
+        if (!cell) {
+          editor.style.cursor = '';
+          return;
+        }
+        
+        const rect = cell.getBoundingClientRect();
+        const isRightEdge = e.clientX > rect.right - 8;
+        const isBottomEdge = e.clientY > rect.bottom - 8;
+        
+        if (isRightEdge) {
+          editor.style.cursor = 'col-resize';
+        } else if (isBottomEdge) {
+          editor.style.cursor = 'row-resize';
+        } else {
+          editor.style.cursor = '';
+        }
+      });
+    }
+
+    // ==================== RECUO MANUAL ====================
+    function aplicarRecuo() {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return;
+      
+      // Encontrar o parágrafo atual
+      let node = selection.anchorNode;
+      while (node && node.nodeName !== 'P' && node.id !== 'editorContent') {
+        node = node.parentNode;
+      }
+      
+      if (node && node.nodeName === 'P') {
+        // Toggle do recuo
+        if (node.style.textIndent === '2.5cm') {
+          node.style.textIndent = '';
+          showToast('Recuo removido', 'success');
+        } else {
+          node.style.textIndent = '2.5cm';
+          showToast('Recuo aplicado (2,5cm)', 'success');
+        }
+      } else {
+        // Se não estiver em um parágrafo, criar um novo com recuo
+        document.execCommand('formatBlock', false, 'p');
+        setTimeout(() => {
+          const newNode = selection.anchorNode.parentNode;
+          if (newNode && newNode.nodeName === 'P') {
+            newNode.style.textIndent = '2.5cm';
+            showToast('Recuo aplicado (2,5cm)', 'success');
+          }
+        }, 10);
+      }
+      
+      document.getElementById('editorContent').focus();
+    }
+
+    function autoFitColumn(table, colIndex) {
+      const cells = table.querySelectorAll(`tr td:nth-child(${colIndex + 1}), tr th:nth-child(${colIndex + 1})`);
+      let maxWidth = 50;
+      
+      cells.forEach(cell => {
+        // Criar elemento temporário para medir
+        const temp = document.createElement('span');
+        temp.style.cssText = 'visibility:hidden;position:absolute;white-space:nowrap;font-size:11pt;';
+        temp.textContent = cell.textContent;
+        document.body.appendChild(temp);
+        maxWidth = Math.max(maxWidth, temp.offsetWidth + 20);
+        document.body.removeChild(temp);
+      });
+      
+      cells.forEach(cell => {
+        cell.style.width = maxWidth + 'px';
+      });
+    }
+
+    // ==================== AÇÕES DE TABELA ====================
+    function tableAction(action) {
+      if (!currentTable && !currentTableCell) return;
+      
+      const table = currentTable || currentTableCell?.closest('table');
+      if (!table) return;
+      
+      const row = currentTableCell?.closest('tr');
+      const rowIdx = row?.rowIndex ?? 0;
+      const cellIdx = currentTableCell?.cellIndex ?? 0;
+      const numCols = table.rows[0]?.cells.length || 1;
+      
+      switch (action) {
+        case 'fitToPage':
+          // Ajustar tabela à largura da página (165mm)
+          table.style.width = '100%';
+          table.style.tableLayout = 'fixed';
+          // Distribuir colunas igualmente
+          const colWidth = 100 / numCols;
+          Array.from(table.rows).forEach(r => {
+            Array.from(r.cells).forEach(c => {
+              c.style.width = colWidth + '%';
+            });
+          });
+          showToast('Tabela ajustada à página', 'success');
+          break;
+          
+        case 'fitToContent':
+          // Ajustar ao conteúdo
+          table.style.width = 'auto';
+          table.style.tableLayout = 'auto';
+          Array.from(table.rows).forEach(r => {
+            Array.from(r.cells).forEach(c => {
+              c.style.width = '';
+            });
+          });
+          showToast('Tabela ajustada ao conteúdo', 'success');
+          break;
+          
+        case 'addRowAbove':
+          const ra = table.insertRow(rowIdx);
+          for (let i = 0; i < numCols; i++) {
+            const c = ra.insertCell();
+            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
+          }
+          break;
+          
+        case 'addRowBelow':
+          const rb = table.insertRow(rowIdx + 1);
+          for (let i = 0; i < numCols; i++) {
+            const c = rb.insertCell();
+            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
+          }
+          break;
+          
+        case 'addColLeft':
+          Array.from(table.rows).forEach((r, i) => {
+            const c = r.insertCell(cellIdx);
+            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
+            if (i === 0 && r.cells[cellIdx + 1]?.tagName === 'TH') {
+              const th = document.createElement('th');
+              th.style.cssText = 'border:1px solid #000;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;text-align:center;text-indent:0;';
+              r.replaceChild(th, c);
+            }
+          });
+          break;
+          
+        case 'addColRight':
+          Array.from(table.rows).forEach((r, i) => {
+            const c = r.insertCell(cellIdx + 1);
+            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
+            if (i === 0 && r.cells[cellIdx]?.tagName === 'TH') {
+              const th = document.createElement('th');
+              th.style.cssText = 'border:1px solid #000;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;text-align:center;text-indent:0;';
+              r.replaceChild(th, c);
+            }
+          });
+          break;
+          
+        case 'deleteRow':
+          if (table.rows.length > 1) {
+            table.deleteRow(rowIdx);
+          } else {
+            table.remove();
+          }
+          break;
+          
+        case 'deleteCol':
+          if (numCols > 1) {
+            Array.from(table.rows).forEach(r => r.deleteCell(cellIdx));
+          } else {
+            table.remove();
+          }
+          break;
+          
+        case 'deleteTable':
+          table.remove();
+          showToast('Tabela excluída', 'success');
+          break;
+      }
+      
+      document.getElementById('tableContextMenu').classList.remove('show');
+      currentTableCell = null;
+      currentTable = null;
+    }
+
+    // ==================== INSERIR TABELA ====================
+    function abrirModalTabela() { 
+      document.getElementById('tabelaModal').classList.add('show'); 
+    }
+
+    function inserirTabela() {
+      const cols = parseInt(document.getElementById('numColunas').value) || 3;
+      const rows = parseInt(document.getElementById('numLinhas').value) || 3;
+      const comCab = document.getElementById('tabelaComCabecalho').checked;
+      
+      // Calcular largura das colunas para caber na página
+      const colWidth = Math.floor(100 / cols);
+      
+      let html = '<table style="width:100%;border-collapse:collapse;margin:12pt 0;table-layout:fixed;">';
+      for (let r = 0; r < rows; r++) {
+        html += '<tr>';
+        for (let c = 0; c < cols; c++) {
+          if (r === 0 && comCab) {
+            html += `<th style="border:1px solid #000;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;text-align:center;text-indent:0;width:${colWidth}%;">Título</th>`;
+          } else {
+            html += `<td style="border:1px solid #000;padding:6pt 8pt;text-indent:0;width:${colWidth}%;"></td>`;
+          }
+        }
+        html += '</tr>';
+      }
+      html += '</table><p></p>';
+      
+      document.getElementById('editorContent').focus();
+      document.execCommand('insertHTML', false, html);
+      fecharModal('tabelaModal');
+      showToast('Tabela inserida! Clique direito para opções', 'success');
+    }
+
+    function inserirModelo(tipo) {
+      const modelos = {
+        comunicacao: '<p>Informo a Vossa Senhoria que...</p><p></p><p>Diante do exposto, coloco-me à disposição para esclarecimentos.</p>',
+        solicitacao: '<p>Solicito a Vossa Senhoria providências quanto a...</p><p></p><p>Certo de contar com a atenção de Vossa Senhoria, agradeço antecipadamente.</p>',
+        encaminhamento: '<p>Encaminho, para conhecimento e providências, cópia do documento...</p><p></p><p>Solicito que sejam adotadas as medidas necessárias.</p>'
+      };
+      document.getElementById('editorContent').innerHTML = modelos[tipo] || '';
+    }
+
+    function initDateField() { 
+      document.getElementById('dataOficioInput').value = new Date().toISOString().split('T')[0]; 
+    }
+
+    function formatarDataExtenso(dataISO) {
+      const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+      const d = new Date(dataISO + 'T12:00:00');
+      return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+    }
+
+    function atualizarCamposAutomaticos() {
+      document.getElementById('numeroOficio').value = `${String(proximoNumero).padStart(3, '0')}/${new Date().getFullYear()}/SCFC/ADMINISTRAÇÃO`;
+    }
+
+    // ==================== FIREBASE ====================
+    window.carregarDadosOnline = async function() {
+      try {
+        const { collection, doc, getDoc, setDoc, query, orderBy, onSnapshot } = window.firestore;
+        const db = window.db;
+        const orgRef = doc(db, "settings", "orgaos");
+        const orgSnap = await getDoc(orgRef);
+        orgaos = orgSnap.exists() ? orgSnap.data().list || [] : [
+          { codigo: '001', nome: 'SECRETARIA MUNICIPAL DE GOVERNO', endereco: 'Av. Duque de Caxias, 1000, Vila Aurora, Rondonópolis-MT' },
+          { codigo: '002', nome: 'SECRETARIA MUNICIPAL DE EDUCAÇÃO', endereco: 'Rua Barão do Rio Branco, 2020, Centro, Rondonópolis-MT' }
+        ];
+        if (!orgSnap.exists()) await setDoc(orgRef, { list: orgaos });
+        atualizarTabelaOrgaos(); carregarOrgaosSelect();
+        
+        const assRef = doc(db, "settings", "assinaturas");
+        const assSnap = await getDoc(assRef);
+        assinaturas = assSnap.exists() ? assSnap.data().list || [] : [{ id: 1, nome: 'Jhonatan Fernandes Gomes', cargo: 'Superintendente de Controle de Frotas e Combustível', ordem: 1 }];
+        if (!assSnap.exists()) await setDoc(assRef, { list: assinaturas });
+        atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
+        
+        const q = query(collection(db, "oficios"), orderBy("id", "desc"));
+        onSnapshot(q, (snapshot) => {
+          historico = [];
+          let maxNum = 0;
+          const ano = new Date().getFullYear();
+          snapshot.forEach((d) => {
+            const data = d.data();
+            data._docId = d.id;
+            historico.push(data);
+            if (data.numero?.includes(`/${ano}/`)) {
+              const n = parseInt(data.numero.split('/')[0]);
+              if (!isNaN(n) && n > maxNum) maxNum = n;
+            }
+          });
+          proximoNumero = maxNum + 1;
+          atualizarCamposAutomaticos();
+          atualizarTabelaHistorico();
+          atualizarFiltroAnos();
+        });
+        showToast('Dados sincronizados!', 'success');
+      } catch (e) { console.error(e); showToast('Erro ao carregar dados', 'error'); }
+    };
+
+    async function salvarSettings(tipo) {
+      const { doc, setDoc } = window.firestore;
+      if (tipo === 'orgaos') await setDoc(doc(window.db, "settings", "orgaos"), { list: orgaos });
+      if (tipo === 'assinaturas') await setDoc(doc(window.db, "settings", "assinaturas"), { list: assinaturas });
+    }
+
+    // ==================== ÓRGÃOS ====================
+    function carregarOrgaosSelect() {
+      const sel = document.getElementById('orgaoDestinatario');
+      sel.innerHTML = '<option value="">Selecione...</option>' + orgaos.sort((a, b) => a.nome.localeCompare(b.nome)).map(o => `<option value="${o.codigo}">${o.codigo} - ${o.nome}</option>`).join('');
+    }
+    function adicionarOrgaoAoOficio() {
+      const cod = document.getElementById('orgaoDestinatario').value;
+      if (!cod) { showToast('Selecione um órgão', 'warning'); return; }
+      if (selectedOrgaosList.find(o => o.codigo === cod)) { showToast('Já adicionado', 'warning'); return; }
+      const org = orgaos.find(o => o.codigo === cod);
+      if (org) { selectedOrgaosList.push({ ...org }); renderSelectedOrgaos(); document.getElementById('orgaoDestinatario').value = ''; }
+    }
+    function removerOrgaoDoOficio(cod) { selectedOrgaosList = selectedOrgaosList.filter(o => o.codigo !== cod); renderSelectedOrgaos(); }
+    function renderSelectedOrgaos() {
+      document.getElementById('selectedOrgaosContainer').innerHTML = selectedOrgaosList.map(o => `<div class="selected-org-item"><div><div class="selected-org-name">${o.nome}</div><div class="selected-org-address">${o.endereco}</div></div><button type="button" class="btn-remove" onclick="removerOrgaoDoOficio('${o.codigo}')">✕</button></div>`).join('');
+    }
+    function atualizarTabelaOrgaos() {
+      document.getElementById('orgaosBody').innerHTML = orgaos.map((o, i) => `<tr><td>${o.codigo}</td><td>${o.nome}</td><td>${o.endereco}</td><td class="actions"><button class="btn btn-sm btn-warning" onclick="editarOrgao(${i})">✏️</button><button class="btn btn-sm btn-error" onclick="excluirOrgao(${i})">🗑️</button></td></tr>`).join('');
+    }
+    function abrirModalOrgao() {
+      document.getElementById('editOrgaoIndex').value = '-1';
+      ['editCodigoOrgao', 'editNomeOrgao', 'editResponsavelOrgao', 'editCargoResponsavel', 'editEnderecoOrgao'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('orgaoModalTitle').textContent = '🏢 Adicionar Órgão';
+      document.getElementById('orgaoModal').classList.add('show');
+    }
+    function editarOrgao(i) {
+      const o = orgaos[i];
+      document.getElementById('editOrgaoIndex').value = i;
+      document.getElementById('editCodigoOrgao').value = o.codigo;
+      document.getElementById('editNomeOrgao').value = o.nome;
+      document.getElementById('editResponsavelOrgao').value = o.responsavel || '';
+      document.getElementById('editCargoResponsavel').value = o.cargoResponsavel || '';
+      document.getElementById('editEnderecoOrgao').value = o.endereco;
+      document.getElementById('orgaoModalTitle').textContent = '🏢 Editar Órgão';
+      document.getElementById('orgaoModal').classList.add('show');
+    }
+    async function salvarOrgao() {
+      const idx = parseInt(document.getElementById('editOrgaoIndex').value);
+      const codigo = document.getElementById('editCodigoOrgao').value.trim();
+      const nome = document.getElementById('editNomeOrgao').value.trim();
+      const responsavel = document.getElementById('editResponsavelOrgao').value.trim();
+      const cargoResponsavel = document.getElementById('editCargoResponsavel').value.trim();
+      const endereco = document.getElementById('editEnderecoOrgao').value.trim();
+      if (!codigo || !nome) { showToast('Preencha código e nome', 'warning'); return; }
+      const novo = { codigo, nome, responsavel, cargoResponsavel, endereco };
+      if (idx >= 0) orgaos[idx] = novo; else orgaos.push(novo);
+      await salvarSettings('orgaos');
+      atualizarTabelaOrgaos(); carregarOrgaosSelect();
+      fecharModal('orgaoModal');
+      showToast('Órgão salvo!', 'success');
+    }
+    async function excluirOrgao(i) {
+      if (confirm('Excluir?')) {
+        orgaos.splice(i, 1);
+        await salvarSettings('orgaos');
+        atualizarTabelaOrgaos(); carregarOrgaosSelect();
+        showToast('Excluído', 'success');
+      }
+    }
+
+    // ==================== ASSINATURAS ====================
+    function carregarAssinaturasSelecao() {
+      document.getElementById('assinaturasContainer').innerHTML = assinaturas.sort((a, b) => a.ordem - b.ordem).map(a => `<label class="assinatura-item"><input type="checkbox" value="${a.id}" checked><div><div class="assinatura-nome">${a.nome}</div><div class="assinatura-cargo">${a.cargo}</div></div></label>`).join('');
+    }
+    function obterAssinaturasSelecionadas() {
+      const ids = [...document.querySelectorAll('#assinaturasContainer input:checked')].map(x => parseInt(x.value));
+      return assinaturas.filter(a => ids.includes(a.id)).sort((a, b) => a.ordem - b.ordem);
+    }
+    function atualizarTabelaAssinaturas() {
+      document.getElementById('assinaturasBody').innerHTML = assinaturas.sort((a, b) => a.ordem - b.ordem).map(a => `<tr><td>${a.nome}</td><td>${a.cargo}</td><td>${a.ordem}</td><td class="actions"><button class="btn btn-sm btn-warning" onclick="editarAssinatura(${a.id})">✏️</button><button class="btn btn-sm btn-error" onclick="excluirAssinatura(${a.id})">🗑️</button></td></tr>`).join('');
+    }
+    function abrirModalAssinatura() {
+      document.getElementById('editAssinaturaId').value = '';
+      document.getElementById('editNomeAssinatura').value = '';
+      document.getElementById('editCargoAssinatura').value = '';
+      document.getElementById('editOrdemAssinatura').value = assinaturas.length + 1;
+      document.getElementById('assinaturaModalTitle').textContent = '✍️ Adicionar Assinatura';
+      document.getElementById('assinaturaModal').classList.add('show');
+    }
+    function editarAssinatura(id) {
+      const a = assinaturas.find(x => x.id === id);
+      if (!a) return;
+      document.getElementById('editAssinaturaId').value = a.id;
+      document.getElementById('editNomeAssinatura').value = a.nome;
+      document.getElementById('editCargoAssinatura').value = a.cargo;
+      document.getElementById('editOrdemAssinatura').value = a.ordem;
+      document.getElementById('assinaturaModalTitle').textContent = '✍️ Editar Assinatura';
+      document.getElementById('assinaturaModal').classList.add('show');
+    }
+    async function salvarAssinatura() {
+      const idStr = document.getElementById('editAssinaturaId').value;
+      const nome = document.getElementById('editNomeAssinatura').value.trim();
+      const cargo = document.getElementById('editCargoAssinatura').value.trim();
+      const ordem = parseInt(document.getElementById('editOrdemAssinatura').value) || 99;
+      if (!nome || !cargo) { showToast('Preencha nome e cargo', 'warning'); return; }
+      if (idStr) {
+        const id = parseInt(idStr);
+        const idx = assinaturas.findIndex(x => x.id === id);
+        if (idx >= 0) assinaturas[idx] = { id, nome, cargo, ordem };
+      } else {
+        assinaturas.push({ id: Date.now(), nome, cargo, ordem });
+      }
+      await salvarSettings('assinaturas');
+      atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
+      fecharModal('assinaturaModal');
+      showToast('Assinatura salva!', 'success');
+    }
+    async function excluirAssinatura(id) {
+      if (confirm('Excluir?')) {
+        assinaturas = assinaturas.filter(x => x.id !== id);
+        await salvarSettings('assinaturas');
+        atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
+        showToast('Excluída', 'success');
+      }
+    }
+
+    // ==================== HISTÓRICO ====================
+    function atualizarTabelaHistorico() {
+      const search = document.getElementById('searchHistorico').value.toLowerCase();
+      const ano = document.getElementById('filterAno').value;
+      let filtered = historico;
+      if (search) filtered = filtered.filter(o => o.numero?.toLowerCase().includes(search) || o.assunto?.toLowerCase().includes(search) || o.destinatario?.toLowerCase().includes(search));
+      if (ano) filtered = filtered.filter(o => o.numero?.includes(`/${ano}/`));
+      if (!filtered.length) { document.getElementById('historicoBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Nenhum ofício</td></tr>'; return; }
+      document.getElementById('historicoBody').innerHTML = filtered.map((o, i) => {
+        const proto = o.protocolo ? `<span style="color:var(--success);font-weight:500;cursor:pointer;" onclick="lancarProtocolo(${i})">${o.protocolo}</span>` : `<button class="btn btn-sm btn-secondary" onclick="lancarProtocolo(${i})">Lançar</button>`;
+        return `<tr><td><strong>${o.numero}</strong></td><td>${o.data}</td><td>${proto}</td><td>${o.destinatario}</td><td>${o.assunto}</td><td class="actions"><button class="btn btn-sm btn-success" onclick="gerarPDFHistorico(${i})">📄</button><button class="btn btn-sm btn-primary" onclick="editarHistorico(${i})">✏️</button><button class="btn btn-sm btn-error" onclick="excluirHistorico(${i})">🗑️</button></td></tr>`;
+      }).join('');
+    }
+    function atualizarFiltroAnos() {
+      const anos = new Set();
+      historico.forEach(o => { const m = o.numero?.match(/\/(\d{4})\//); if (m) anos.add(m[1]); });
+      document.getElementById('filterAno').innerHTML = '<option value="">Todos</option>' + Array.from(anos).sort((a, b) => b - a).map(a => `<option value="${a}">${a}</option>`).join('');
+    }
+    document.getElementById('searchHistorico')?.addEventListener('input', atualizarTabelaHistorico);
+    document.getElementById('filterAno')?.addEventListener('change', atualizarTabelaHistorico);
+    async function lancarProtocolo(i) {
+      const o = historico[i];
+      if (!o?._docId) return;
+      const novo = prompt('Protocolo:', o.protocolo || '');
+      if (novo !== null) {
+        await window.firestore.updateDoc(window.firestore.doc(window.db, "oficios", o._docId), { protocolo: novo.trim() });
+        showToast('Protocolo atualizado!', 'success');
+      }
+    }
+    function editarHistorico(i) {
+      if (!confirm('Carregar para edição?')) return;
+      const o = historico[i];
+      document.getElementById('numeroOficio').value = o.numero;
+      if (o.dataCompleta) {
+        const p = o.dataCompleta.match(/(\d+) de (\w+) de (\d{4})/);
+        if (p) {
+          const m = { janeiro: '01', fevereiro: '02', março: '03', abril: '04', maio: '05', junho: '06', julho: '07', agosto: '08', setembro: '09', outubro: '10', novembro: '11', dezembro: '12' };
+          document.getElementById('dataOficioInput').value = `${p[3]}-${m[p[2].toLowerCase()]}-${p[1].padStart(2, '0')}`;
+        }
+      }
+      document.getElementById('assuntoOficio').value = o.assunto;
+      document.getElementById('editorContent').innerHTML = o.texto;
+      if (o.vocativo) document.getElementById('vocativoOficio').value = o.vocativo;
+      if (o.fecho) document.getElementById('fechoOficio').value = o.fecho;
+      selectedOrgaosList = o.destinatarios?.length ? [...o.destinatarios] : [];
+      renderSelectedOrgaos();
+      document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
+      (o.assinaturas || []).forEach(sig => { const cb = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`); if (cb) cb.checked = true; });
+      document.querySelector('.tab[data-tab="gerador"]').click();
+      showToast('Carregado', 'success');
+    }
+    async function excluirHistorico(i) {
+      if (confirm('Excluir permanentemente?')) {
+        const o = historico[i];
+        if (o?._docId) {
+          await window.firestore.deleteDoc(window.firestore.doc(window.db, "oficios", o._docId));
+          showToast('Excluído', 'success');
+        }
+      }
+    }
+
+    // ==================== VALIDAÇÃO ====================
+    function validarFormulario() {
+      let ok = true;
+      if (!selectedOrgaosList.length) { document.getElementById('orgaoError').style.display = 'block'; ok = false; } else document.getElementById('orgaoError').style.display = 'none';
+      if (!document.getElementById('assuntoOficio').value.trim()) { document.getElementById('assuntoError').style.display = 'block'; ok = false; } else document.getElementById('assuntoError').style.display = 'none';
+      if (!document.getElementById('editorContent').innerText.trim()) { document.getElementById('textoError').style.display = 'block'; ok = false; } else document.getElementById('textoError').style.display = 'none';
+      return ok;
+    }
+
+    // ==================== PAGINAÇÃO ====================
+    function medirAltura(html) {
+      const container = document.getElementById('measureContainer');
+      container.innerHTML = html;
+      const altura = container.offsetHeight;
+      container.innerHTML = '';
+      return altura;
+    }
+
+    function processarTabelasParaPDF(html) {
+      // Garantir que tabelas não excedam a largura da página
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      
+      temp.querySelectorAll('table').forEach(table => {
+        table.style.width = '100%';
+        table.style.maxWidth = '100%';
+        table.style.tableLayout = 'fixed';
+        table.style.borderCollapse = 'collapse';
+        
+        // Remover text-indent de todas as células
+        table.querySelectorAll('td, th').forEach(cell => {
+          cell.style.textIndent = '0';
+          cell.style.wordWrap = 'break-word';
+          cell.style.overflowWrap = 'break-word';
+          // Remover text-indent de parágrafos dentro das células
+          cell.querySelectorAll('p').forEach(p => {
+            p.style.textIndent = '0';
+            p.style.margin = '0';
+          });
+        });
+      });
+      
+      return temp.innerHTML;
+    }
+
+    function gerarPaginas(dados) {
+      const headerImg = 'https://advantagemidia.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-15-at-10.31.14.jpeg';
+      
+      // Processar texto para garantir tabelas corretas
+      const textoProcessado = processarTabelasParaPDF(dados.texto);
+      
+      // Gerar cabeçalho do ofício (só na primeira página)
+      let cabecalhoOficio = '';
+      cabecalhoOficio += `<div class="oficio-numero">OFÍCIO Nº ${dados.numero}</div>`;
+      cabecalhoOficio += `<div class="oficio-data">${dados.dataExtenso}</div>`;
+      cabecalhoOficio += '<div class="oficio-destinatario">';
+      dados.destinatarios.forEach(org => {
+        cabecalhoOficio += '<div class="oficio-destinatario-item">';
+        cabecalhoOficio += `<div>${dados.tratamento}</div>`;
+        if (org.responsavel) cabecalhoOficio += `<div><strong>${org.responsavel}</strong></div>`;
+        if (org.cargoResponsavel) cabecalhoOficio += `<div>${org.cargoResponsavel}</div>`;
+        cabecalhoOficio += `<div>${org.nome}</div>`;
+        cabecalhoOficio += `<div>${org.endereco}</div>`;
+        cabecalhoOficio += '</div>';
+      });
+      cabecalhoOficio += '</div>';
+      cabecalhoOficio += `<div class="oficio-assunto"><strong>Assunto:</strong> ${dados.assunto}</div>`;
+      cabecalhoOficio += `<div class="oficio-vocativo" style="text-indent:2.5cm">${dados.vocativo}</div>`;
+      
+      // Gerar assinaturas
+      let assinaturasHTML = '<div class="oficio-assinatura">';
+      dados.assinaturas.forEach(a => {
+        assinaturasHTML += `<div class="assinatura-bloco"><div class="assinatura-linha"><div class="assinatura-nome-preview">${a.nome}</div><div>${a.cargo}</div></div></div>`;
+      });
+      assinaturasHTML += '</div>';
+      
+      // Criar container temporário para medir alturas com precisão
+      // IMPORTANTE: usar as mesmas dimensões e estilos da página real
+      const measureDiv = document.createElement('div');
+      measureDiv.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        width: 165mm;
+        font-family: 'Carlito', 'Calibri', sans-serif;
+        font-size: 12pt;
+        line-height: 1.5;
+        visibility: hidden;
+      `;
+      document.body.appendChild(measureDiv);
+      
+      // Função para medir altura real
+      function medir(html) {
+        measureDiv.innerHTML = html;
+        const h = measureDiv.getBoundingClientRect().height;
+        return h;
+      }
+      
+      // Altura disponível em pixels
+      // A4 = 297mm, cabeçalho institucional = 50mm, rodapé = 20mm
+      // Área útil = 227mm
+      // 1mm ≈ 3.7795px em 96dpi
+      const MM_PX = 3.7795;
+      const ALTURA_CONTEUDO_PX = 227 * MM_PX; // ~858px
+      
+      // Medir altura do cabeçalho do ofício
+      const alturaCabecalhoOficio = medir(cabecalhoOficio);
+      console.log('Altura cabeçalho ofício:', alturaCabecalhoOficio, 'px');
+      console.log('Altura área útil:', ALTURA_CONTEUDO_PX, 'px');
+      
+      // Altura disponível na primeira página (descontando cabeçalho do ofício)
+      const alturaDisponivelPrimeira = ALTURA_CONTEUDO_PX - alturaCabecalhoOficio - 20;
+      // Altura disponível nas demais páginas
+      const alturaDisponivelDemais = ALTURA_CONTEUDO_PX - 20;
+      
+      console.log('Altura disponível 1ª página:', alturaDisponivelPrimeira, 'px');
+      console.log('Altura disponível demais:', alturaDisponivelDemais, 'px');
+      
+      // Extrair blocos de conteúdo
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = textoProcessado;
+      const blocos = [];
+      
+      tempDiv.childNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const h = medir(node.outerHTML);
+          blocos.push({ html: node.outerHTML, altura: h });
+          console.log('Bloco:', node.tagName, 'altura:', h);
+        } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+          const html = `<p>${node.textContent}</p>`;
+          const h = medir(html);
+          blocos.push({ html, altura: h });
+          console.log('Texto:', html.substring(0,50), 'altura:', h);
+        }
+      });
+      
+      // Adicionar fecho
+      const fechoHTML = `<div class="oficio-fecho">${dados.fecho}</div>`;
+      const alturaFecho = medir(fechoHTML);
+      blocos.push({ html: fechoHTML, altura: alturaFecho });
+      console.log('Fecho altura:', alturaFecho);
+      
+      // Adicionar assinaturas
+      const alturaAss = medir(assinaturasHTML);
+      blocos.push({ html: assinaturasHTML, altura: alturaAss });
+      console.log('Assinaturas altura:', alturaAss);
+      
+      // Remover container de medição
+      document.body.removeChild(measureDiv);
+      
+      // Calcular altura total
+      const alturaTotal = blocos.reduce((sum, b) => sum + b.altura, 0);
+      console.log('Altura total conteúdo:', alturaTotal, 'px');
+      
+      // Distribuir blocos nas páginas
+      const paginas = [];
+      let paginaAtual = { blocos: [], altura: 0, isPrimeira: true };
+      
+      for (const bloco of blocos) {
+        const alturaDisponivel = paginaAtual.isPrimeira ? alturaDisponivelPrimeira : alturaDisponivelDemais;
+        
+        // Se não cabe na página atual e já tem conteúdo, criar nova página
+        if (paginaAtual.altura + bloco.altura > alturaDisponivel && paginaAtual.blocos.length > 0) {
+          console.log('Nova página! Altura atual:', paginaAtual.altura, 'Disponível:', alturaDisponivel);
+          paginas.push(paginaAtual);
+          paginaAtual = { blocos: [], altura: 0, isPrimeira: false };
+        }
+        
+        paginaAtual.blocos.push(bloco.html);
+        paginaAtual.altura += bloco.altura;
+      }
+      
+      // Adicionar última página se tem conteúdo
+      if (paginaAtual.blocos.length > 0) {
+        paginas.push(paginaAtual);
+      }
+      
+      console.log('Total de páginas geradas:', paginas.length);
+      
+      // Gerar HTML das páginas
+      let htmlPaginas = '';
+      
+      paginas.forEach((pagina, idx) => {
+        htmlPaginas += `<div class="oficio-page" data-page="${idx + 1}">`;
+        htmlPaginas += `<div class="oficio-header"><img src="${headerImg}" alt="Cabeçalho"></div>`;
+        htmlPaginas += '<div class="oficio-body">';
+        
+        // Cabeçalho do ofício só na primeira página
+        if (pagina.isPrimeira) {
+          htmlPaginas += cabecalhoOficio;
+        }
+        
+        // Conteúdo da página
+        htmlPaginas += '<div class="oficio-content">';
+        htmlPaginas += pagina.blocos.join('');
+        htmlPaginas += '</div>';
+        
+        htmlPaginas += '</div>'; // fecha body
+        htmlPaginas += `<div class="oficio-footer"><div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div><div>Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div></div>`;
+        htmlPaginas += '</div>'; // fecha page
+      });
+      
+      // Adicionar indicador de páginas
+      if (paginas.length > 1) {
+        htmlPaginas += `<div class="page-indicator">${paginas.length} páginas</div>`;
+      }
+      
+      return { html: htmlPaginas, total: paginas.length };
+    }
+
+    function visualizarPrevia() {
+      if (!validarFormulario()) { showToast('Preencha os campos obrigatórios', 'warning'); return; }
+      
+      const dados = {
+        numero: document.getElementById('numeroOficio').value,
+        dataExtenso: `${document.getElementById('localOficio').value}, ${formatarDataExtenso(document.getElementById('dataOficioInput').value)}.`,
+        tratamento: document.getElementById('tratamento').value,
+        destinatarios: selectedOrgaosList,
+        assunto: document.getElementById('assuntoOficio').value,
+        vocativo: document.getElementById('vocativoOficio').value,
+        texto: document.getElementById('editorContent').innerHTML,
+        fecho: document.getElementById('fechoOficio').value,
+        assinaturas: obterAssinaturasSelecionadas()
+      };
+      
+      const resultado = gerarPaginas(dados);
+      
+      let htmlFinal = resultado.html;
+      if (resultado.total > 1) {
+        htmlFinal += `<div class="page-indicator">${resultado.total} páginas</div>`;
+      }
+      
+      document.getElementById('previewPages').innerHTML = htmlFinal;
+      document.getElementById('previewSection').classList.add('show');
+      document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function editarOficio() {
+      document.getElementById('previewSection').classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==================== GERAR E SALVAR ====================
+    async function gerarOficio() {
+      if (!validarFormulario()) { showToast('Preencha os campos obrigatórios', 'warning'); return; }
+      const { addDoc, collection } = window.firestore;
+      const dataISO = document.getElementById('dataOficioInput').value;
+      const destStr = selectedOrgaosList.map(o => o.nome).join('; ');
+      const novo = {
+        id: Date.now(),
+        numero: document.getElementById('numeroOficio').value,
+        data: new Date().toLocaleDateString('pt-BR'),
+        dataCompleta: formatarDataExtenso(dataISO),
+        destinatario: destStr,
+        destinatarios: selectedOrgaosList,
+        assunto: document.getElementById('assuntoOficio').value,
+        vocativo: document.getElementById('vocativoOficio').value,
+        texto: document.getElementById('editorContent').innerHTML,
+        fecho: document.getElementById('fechoOficio').value,
+        assinaturas: obterAssinaturasSelecionadas(),
+        protocolo: ""
+      };
+      try {
+        await addDoc(collection(window.db, "oficios"), novo);
+        showToast('Ofício salvo!', 'success');
+        visualizarPrevia();
+        limparFormulario();
+      } catch (e) { console.error(e); showToast('Erro ao salvar', 'error'); }
+    }
+
+    function limparFormulario() {
+      document.getElementById('assuntoOficio').value = '';
+      document.getElementById('vocativoOficio').value = 'Senhor(a),';
+      document.getElementById('editorContent').innerHTML = '<p>Informo que...</p>';
+      document.getElementById('fechoOficio').value = 'Atenciosamente,';
+      selectedOrgaosList = [];
+      renderSelectedOrgaos();
+      atualizarCamposAutomaticos();
+      initDateField();
+      document.getElementById('previewSection').classList.remove('show');
+    }
+
+    // ==================== PDF ====================
+    async function gerarPDF() {
+      showLoading(true);
+      try {
+        let pagesArray = document.querySelectorAll('#previewPages .oficio-page');
+        
+        if (!pagesArray.length) { 
+          visualizarPrevia(); 
+          await new Promise(r => setTimeout(r, 500));
+          pagesArray = document.querySelectorAll('#previewPages .oficio-page');
+        }
+        
+        if (!pagesArray.length) {
+          showToast('Erro: nenhuma página para gerar', 'error');
+          return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        for (let i = 0; i < pagesArray.length; i++) {
+          const canvas = await html2canvas(pagesArray[i], { 
+            scale: 2, 
+            useCORS: true, 
+            backgroundColor: '#ffffff', 
+            logging: false 
+          });
+          if (i > 0) pdf.addPage();
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+        }
+        
+        const numero = document.getElementById('numeroOficio').value.replace(/\//g, '_');
+        pdf.save(`Oficio_${numero}.pdf`);
+        showToast('PDF gerado!', 'success');
+      } catch (e) { 
+        console.error(e); 
+        showToast('Erro ao gerar PDF', 'error'); 
+      }
+      finally { showLoading(false); }
+    }
+
+    async function gerarPDFHistorico(i) {
+      const o = historico[i];
+      document.getElementById('numeroOficio').value = o.numero;
+      document.getElementById('assuntoOficio').value = o.assunto;
+      document.getElementById('editorContent').innerHTML = o.texto;
+      if (o.vocativo) document.getElementById('vocativoOficio').value = o.vocativo;
+      if (o.fecho) document.getElementById('fechoOficio').value = o.fecho;
+      selectedOrgaosList = o.destinatarios?.length ? [...o.destinatarios] : [{ nome: o.destinatario, endereco: '' }];
+      document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
+      (o.assinaturas || []).forEach(sig => { const cb = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`); if (cb) cb.checked = true; });
+      if (o.dataCompleta) {
+        const p = o.dataCompleta.match(/(\d+) de (\w+) de (\d{4})/);
+        if (p) {
+          const m = { janeiro: '01', fevereiro: '02', março: '03', abril: '04', maio: '05', junho: '06', julho: '07', agosto: '08', setembro: '09', outubro: '10', novembro: '11', dezembro: '12' };
+          document.getElementById('dataOficioInput').value = `${p[3]}-${m[p[2].toLowerCase()]}-${p[1].padStart(2, '0')}`;
+        }
+      }
+      visualizarPrevia();
+      await new Promise(r => setTimeout(r, 300));
+      await gerarPDF();
+    }
+
+    function imprimirOficio() { window.print(); }
+
+    // ==================== UTILITÁRIOS ====================
+    function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+    function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('show', show); }
+    document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); }));
+  </script>
+</body>
+</html>
