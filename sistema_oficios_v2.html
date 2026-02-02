@@ -1,1398 +1,2444 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Ofícios - SCFC</title>
-  <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Ofícios - SCFC/Administração</title>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/icons/default/icons.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/themes/silver/theme.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/models/dom/model.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/plugins/lists/plugin.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/plugins/table/plugin.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/plugins/autoresize/plugin.min.js"></script>
+
+  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    const firebaseConfig = { apiKey: "AIzaSyCRKwo4jsEdOLmnskg9GfwTxMgsERAiMVE", authDomain: "sistema-de-oficio-scfc.firebaseapp.com", projectId: "sistema-de-oficio-scfc", storageBucket: "sistema-de-oficio-scfc.firebasestorage.app", messagingSenderId: "377698743258", appId: "1:377698743258:web:8399595743e1604e3dc6e3" };
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCRKwo4jsEdOLmnskg9GfwTxMgsERAiMVE",
+      authDomain: "sistema-de-oficio-scfc.firebaseapp.com",
+      projectId: "sistema-de-oficio-scfc",
+      storageBucket: "sistema-de-oficio-scfc.firebasestorage.app",
+      messagingSenderId: "377698743258",
+      appId: "1:377698743258:web:8399595743e1604e3dc6e3",
+      measurementId: "G-J9CBXPY8KM"
+    };
+
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
-    window.db = db; window.auth = auth;
+
+    // Globals for Legacy Script Access
+    window.db = db;
+    window.auth = auth;
     window.firestore = { collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc };
-    document.getElementById('btnLoginGoogle')?.addEventListener('click', () => signInWithPopup(auth, provider).catch(e => alert("Erro: " + e.message)));
-    document.getElementById('btnLogout')?.addEventListener('click', () => { if (confirm("Sair?")) signOut(auth); });
+
+    // Auth Logic
+    const btnLogin = document.getElementById('btnLoginGoogle');
+    const btnLogout = document.getElementById('btnLogout');
+    const appContent = document.getElementById('appContent');
+    const loginScreen = document.getElementById('loginScreen');
+    const userInfo = document.getElementById('userInfo');
+    const userEmail = document.getElementById('userEmail');
+
+    if (btnLogin) {
+      btnLogin.addEventListener('click', () => {
+        signInWithPopup(auth, provider).catch((error) => {
+          console.error("Erro login:", error);
+          alert("Erro ao fazer login: " + error.message);
+        });
+      });
+    }
+
+    if (btnLogout) {
+      btnLogout.addEventListener('click', () => {
+        const confirmLogout = confirm("Tem certeza que deseja sair?");
+        if (confirmLogout) signOut(auth);
+      });
+    }
+
+    // Sidebar logout button
+    const btnLogoutSidebar = document.getElementById('btnLogoutSidebar');
+    if (btnLogoutSidebar) {
+      btnLogoutSidebar.addEventListener('click', () => {
+        const confirmLogout = confirm("Tem certeza que deseja sair?");
+        if (confirmLogout) signOut(auth);
+      });
+    }
+
     onAuthStateChanged(auth, (user) => {
-      document.getElementById('loginScreen').style.display = user ? 'none' : 'flex';
-      document.getElementById('appContent').style.display = user ? 'block' : 'none';
-      if (user) { document.getElementById('userInfo').style.display = 'flex'; document.getElementById('userEmail').textContent = user.email; if (window.carregarDadosOnline) window.carregarDadosOnline(); }
+      if (user) {
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (appContent) appContent.style.display = 'block';
+        if (userInfo) {
+          userInfo.style.display = 'flex';
+          if (userEmail) userEmail.textContent = user.email;
+        }
+        // Sidebar email sync
+        const sidebarEmail = document.getElementById('sidebarUserEmail');
+        if (sidebarEmail) sidebarEmail.textContent = user.email;
+
+        // Trigger data load
+        if (window.carregarDadosOnline) window.carregarDadosOnline();
+      } else {
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (appContent) appContent.style.display = 'none';
+        if (userInfo) userInfo.style.display = 'none';
+      }
     });
   </script>
+
   <style>
-    :root{
-      --primary:#0f4c81;--primary-light:#1a5f9e;--primary-dark:#0a3a63;--primary-subtle:#e8f1f8;
-      --accent:#00a878;--accent-light:#00c48c;
-      --bg:#f0f4f8;--bg-card:#fff;--bg-subtle:#f8fafc;
-      --text:#1e293b;--text-secondary:#475569;--text-muted:#94a3b8;
-      --border:#e2e8f0;--border-light:#f1f5f9;
-      --success:#059669;--success-light:#d1fae5;--warning:#d97706;--warning-light:#fef3c7;--error:#dc2626;--error-light:#fee2e2;
-      --radius:8px;--radius-lg:16px;
-      --shadow-sm:0 1px 2px rgba(15,23,42,0.04);--shadow:0 4px 12px rgba(15,23,42,0.08);--shadow-lg:0 12px 40px rgba(15,23,42,0.12);
-      --font-body:'Plus Jakarta Sans',system-ui,sans-serif;--font-oficio:'Carlito','Calibri',sans-serif;
-      --transition:250ms cubic-bezier(0.4,0,0.2,1)
+    :root {
+      --primary: #1e5099;
+      --primary-dark: #0f3460;
+      --border: #e2e8f0;
+      --border-light: #f1f5f9;
+      --bg-card: #fff;
+      --text: #000;
+      --text-light: #6b7280;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --error: #dc2626;
     }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased}
-    
-    /* LOGIN */
-    #loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9999;background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 50%,var(--primary-light) 100%);overflow:hidden}
-    #loginScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 80%,rgba(0,168,120,0.15) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(255,255,255,0.1) 0%,transparent 40%)}
-    #loginScreen::after{content:'';position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
-    .login-card{position:relative;z-index:1;background:#fff;padding:2.5rem;border-radius:var(--radius-lg);text-align:center;box-shadow:var(--shadow-lg);max-width:420px;width:90%;animation:fadeInUp .6s ease-out}
-    @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-    .login-card::before{content:'📄';display:block;font-size:3rem;margin-bottom:1rem}
-    .login-card h1{color:var(--primary);margin-bottom:.5rem;font-size:1.75rem;font-weight:700;letter-spacing:-.02em}
-    .login-card p{color:var(--text-secondary);margin-bottom:2rem;font-size:.95rem}
-    .login-btn{width:100%;background:var(--bg-subtle);color:var(--text);border:1px solid var(--border);padding:1rem 1.5rem;border-radius:var(--radius);font-size:1rem;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:12px;transition:var(--transition)}
-    .login-btn:hover{background:var(--bg);border-color:var(--primary);box-shadow:var(--shadow);transform:translateY(-2px)}
-    
-    #appContent{display:none;animation:fadeIn .5s ease-out}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    
-    /* USER INFO */
-    .user-info{position:fixed;top:1rem;right:1.5rem;display:none;align-items:center;gap:1rem;background:#fff;padding:.625rem 1.25rem;border-radius:50px;box-shadow:var(--shadow);font-size:.875rem;z-index:100;border:1px solid var(--border-light)}
-    .user-info span{color:var(--text-secondary);font-weight:500}
-    .user-info button{background:none;border:none;color:var(--error);cursor:pointer;font-weight:600;padding:.25rem .5rem;border-radius:var(--radius);transition:var(--transition)}
-    .user-info button:hover{background:var(--error-light)}
-    
-    /* CONTAINER & HEADER */
-    .container{max-width:1400px;margin:0 auto;padding:2rem}
-    .header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:2rem 2.5rem;border-radius:var(--radius-lg);margin-bottom:2rem;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
-    .header::before{content:'';position:absolute;top:-50%;right:-20%;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%);border-radius:50%}
-    .header h1{font-size:1.875rem;margin-bottom:.5rem;font-weight:700;letter-spacing:-.02em;position:relative}
-    .header .subtitle{opacity:.95;font-size:1rem;font-weight:500;position:relative}
-    .header .meta{opacity:.8;font-size:.85rem;margin-top:.5rem;position:relative}
-    
-    /* TABS */
-    .tabs-container{background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);border:1px solid var(--border-light);overflow:hidden}
-    .tabs{display:flex;background:var(--bg-subtle);border-bottom:1px solid var(--border-light);padding:.5rem;gap:.5rem}
-    .tab{flex:1;padding:1rem 1.5rem;background:transparent;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font-body);font-weight:500;color:var(--text-muted);transition:var(--transition);font-size:.9rem}
-    .tab:hover{color:var(--text);background:var(--bg-card)}
-    .tab.active{color:var(--primary);background:var(--bg-card);box-shadow:var(--shadow-sm)}
-    .tab-content{display:none;padding:2rem;animation:fadeIn .3s ease-out}
-    .tab-content.active{display:block}
-    
-    /* FORM SECTIONS */
-    .form-section{background:var(--bg-subtle);border:1px solid var(--border-light);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem}
-    .section-title{font-size:1rem;font-weight:600;color:var(--primary);margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:2px solid var(--border-light);display:flex;align-items:center;gap:.5rem}
-    .section-title::before{content:'';width:4px;height:20px;background:var(--primary);border-radius:2px}
-    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem}
-    .form-group{display:flex;flex-direction:column}.form-group.full-width{grid-column:1/-1}
-    .form-label{font-weight:500;margin-bottom:.5rem;font-size:.85rem;color:var(--text-secondary)}.form-label.required::after{content:" *";color:var(--error)}
-    .form-input,.form-select,.form-textarea{padding:.75rem 1rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.95rem;font-family:var(--font-body);background:var(--bg-card);color:var(--text);transition:var(--transition)}
-    .form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-subtle)}
-    .login-card{background:#fff;padding:2.5rem;border-radius:12px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2);max-width:380px}
-    .login-card h1{color:var(--primary);margin-bottom:.5rem;font-size:1.5rem}.login-card p{color:var(--text-muted);margin-bottom:1.5rem}
-    .login-btn{background:#4285F4;color:#fff;border:none;padding:.875rem 1.5rem;border-radius:var(--radius);font-size:1rem;cursor:pointer;display:inline-flex;align-items:center;gap:10px}
-    .login-btn:hover{background:#357ae8}#appContent{display:none}
-    .user-info{position:fixed;top:1rem;right:1.5rem;display:none;align-items:center;gap:1rem;background:#fff;padding:.5rem 1rem;border-radius:20px;box-shadow:var(--shadow);font-size:.875rem;z-index:100}
-    .user-info button{background:none;border:none;color:var(--error);cursor:pointer;font-weight:600}
-    .container{max-width:1400px;margin:0 auto;padding:1.5rem}
-    .header{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:1.5rem 2rem;border-radius:10px;margin-bottom:1.5rem}
-    .header h1{font-size:1.75rem;margin-bottom:.25rem}.header .subtitle{opacity:.9}.header .meta{opacity:.8;font-size:.85rem;margin-top:.25rem}
-    .tabs-container{background:var(--bg-card);border-radius:10px;box-shadow:var(--shadow);border:1px solid var(--border-light);overflow:hidden}
-    .tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--border-light)}
-    .tab{flex:1;padding:1rem;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-weight:500;color:var(--text-muted);transition:all .2s}
-    .tab:hover{color:var(--primary)}.tab.active{color:var(--primary);border-bottom-color:var(--primary);background:var(--bg-card)}
-    .tab-content{display:none;padding:1.5rem}.tab-content.active{display:block}
-    .form-section{background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.25rem}
-    .section-title{font-size:1.1rem;font-weight:600;color:var(--primary);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:2px solid var(--border-light)}
-    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
-    .form-group{display:flex;flex-direction:column}.form-group.full-width{grid-column:1/-1}
-    .form-label{font-weight:500;margin-bottom:.375rem;font-size:.875rem}.form-label.required::after{content:" *";color:var(--error)}
-    .form-input,.form-select,.form-textarea{padding:.625rem .875rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.95rem;font-family:inherit;background:var(--bg-card)}
-    .form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,77,124,.1)}
-    .error-message{color:var(--error);font-size:.8rem;margin-top:.25rem;display:none}
-    
-    /* EDITOR */
-    .editor-wrapper{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--bg-card)}
-    .editor-toolbar{display:flex;flex-wrap:wrap;gap:.375rem;padding:.75rem;background:var(--bg-subtle);border-bottom:1px solid var(--border-light);align-items:center}
-    .toolbar-group{display:flex;gap:3px;padding:0 .75rem;border-right:1px solid var(--border-light)}.toolbar-group:last-child{border-right:none}
-    .toolbar-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:var(--radius);cursor:pointer;font-size:.9rem;color:var(--text-secondary);transition:var(--transition)}
-    .toolbar-btn:hover{background:var(--bg-card);color:var(--text);border-color:var(--border)}
-    .toolbar-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .toolbar-select{height:36px;padding:0 .75rem;border:1px solid var(--border);border-radius:var(--radius);font-size:.85rem;background:var(--bg-card);color:var(--text);cursor:pointer}
-    .toolbar-label{font-size:.75rem;color:var(--text-muted);padding:0 .25rem}
-    
-    /* EDITOR CONTENT */
-    .editor-content{min-height:320px;max-height:500px;overflow-y:auto;padding:1.5rem;font-family:var(--font-oficio);font-size:12pt;line-height:1.5;outline:none;background:#fff}
-    .editor-content p{margin:0 0 6pt;text-align:justify}
-    .editor-content table{width:auto;max-width:100%;border-collapse:collapse;margin:12pt 0;font-size:11pt;table-layout:fixed}
-    .editor-content th,.editor-content td{border:1px solid #000;padding:6pt 8pt;text-indent:0!important;vertical-align:top;word-wrap:break-word}
-    .editor-content th{background:#f0f0f0;font-weight:bold;text-align:center}
-    .editor-content td p,.editor-content th p{text-indent:0!important;margin:0}
-    
-    /* Redimensionamento de colunas */
-    .editor-content table.resizable{position:relative}
-    .col-resize-handle{position:absolute;top:0;width:5px;height:100%;cursor:col-resize;background:transparent;z-index:10}
-    .col-resize-handle:hover,.col-resize-handle.active{background:var(--primary);opacity:0.5}
-    .row-resize-handle{position:absolute;left:0;height:5px;width:100%;cursor:row-resize;background:transparent;z-index:10}
-    .row-resize-handle:hover,.row-resize-handle.active{background:var(--primary);opacity:0.5}
-    
-    /* Tabela selecionada */
-    .editor-content table.selected{outline:2px solid var(--primary);outline-offset:2px}
-    
-    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:.9rem;font-weight:500;cursor:pointer;transition:var(--transition)}
-    .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:var(--shadow)}.btn:disabled{opacity:.5;cursor:not-allowed}
-    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff}
-    .btn-primary:hover:not(:disabled){background:linear-gradient(135deg,var(--primary-dark),var(--primary))}
-    .btn-success{background:linear-gradient(135deg,var(--success),#10b981);color:#fff}
-    .btn-warning{background:linear-gradient(135deg,var(--warning),#f59e0b);color:#fff}
-    .btn-error{background:linear-gradient(135deg,var(--error),#ef4444);color:#fff}
-    .btn-secondary{background:var(--bg-card);color:var(--text);border:1px solid var(--border)}
-    .btn-secondary:hover:not(:disabled){background:var(--bg-subtle);border-color:var(--primary)}
-    .btn-sm{padding:.5rem 1rem;font-size:.8rem}
-    .button-group{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap;justify-content:center}
-    /* SELECTED ORGS */
-    .selected-orgs{margin-top:1rem;display:flex;flex-direction:column;gap:.5rem}
-    .selected-org-item{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);transition:var(--transition)}
-    .selected-org-item:hover{border-color:var(--primary)}
-    .selected-org-name{font-weight:600;color:var(--primary)}.selected-org-address{font-size:.85rem;color:var(--text-muted)}
-    .btn-remove{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--error-light);border:none;border-radius:50%;color:var(--error);cursor:pointer;font-size:1.25rem;transition:var(--transition)}
-    .btn-remove:hover{background:var(--error);color:#fff}
-    
-    /* ASSINATURAS */
-    .assinaturas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-top:1rem}
-    .assinatura-item{display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:var(--transition)}
-    .assinatura-item:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
-    .assinatura-item input{width:20px;height:20px;accent-color:var(--primary)}
-    .assinatura-nome{font-weight:600;color:var(--text)}.assinatura-cargo{font-size:.85rem;color:var(--text-muted)}
-    
-    /* DATA TABLE */
-    .data-table{width:100%;border-collapse:collapse;font-size:.9rem}
-    .data-table th,.data-table td{padding:1rem 1.25rem;text-align:left;border-bottom:1px solid var(--border-light)}
-    .data-table th{background:var(--bg-subtle);font-weight:600;color:var(--text-secondary);font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
-    .data-table tr:hover{background:var(--bg-subtle)}
-    .data-table .actions{display:flex;gap:.5rem;justify-content:center}
-    /* PREVIEW */
-    .preview-section{display:none;margin-top:2rem;animation:slideUp .3s ease-out}.preview-section.show{display:block}
-    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    .preview-container{background:linear-gradient(135deg,#4a5568,#2d3748);padding:2rem;border-radius:var(--radius-lg);max-height:85vh;overflow-y:auto}
-    .preview-pages{display:flex;flex-direction:column;align-items:center;gap:24px}
-    
-    /* PÁGINA A4 FLEXÍVEL - cresce conforme conteúdo */
-    .oficio-page-flex{width:210mm;min-height:297mm;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.3);font-family:var(--font-oficio);font-size:12pt;line-height:1.5;color:#000;position:relative;padding:0;margin:0 auto}
-    .oficio-header-flex{height:50mm;padding:20mm 15mm 0 30mm;display:flex;align-items:flex-start;justify-content:center}
-    .oficio-header-flex img{max-width:100%;max-height:28mm;object-fit:contain}
-    .oficio-body-flex{padding:0 15mm 25mm 30mm;min-height:calc(297mm - 50mm - 20mm)}
-    .oficio-footer-flex{padding:0 15mm 5mm 30mm;border-top:1px solid #000;font-size:10pt}
-    .oficio-footer-flex .footer-linha1{font-weight:bold}
-    
-    /* Manter compatibilidade com classes antigas */
-    .oficio-page{width:210mm;height:297mm;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.3);font-family:var(--font-oficio);font-size:12pt;line-height:1.5;color:#000;position:relative;flex-shrink:0;overflow:hidden;page-break-after:always}
-    .oficio-header{position:absolute;top:0;left:0;right:0;height:50mm;padding:20mm 15mm 0 30mm;display:flex;align-items:flex-start;justify-content:center}
-    .oficio-header img{max-width:100%;max-height:28mm;object-fit:contain}
-    .oficio-body{position:absolute;top:50mm;left:30mm;right:15mm;bottom:20mm;overflow:hidden}
-    .oficio-numero{font-weight:bold;margin-bottom:6pt}
-    .oficio-data{text-align:right;margin-bottom:18pt}
-    .oficio-destinatario{margin-bottom:18pt;line-height:1.3}
-    .oficio-destinatario-item{margin-bottom:12pt}
-    .oficio-assunto{margin-bottom:18pt}
-    .oficio-vocativo{margin-bottom:12pt}
-    .oficio-content p{margin:0 0 6pt;text-align:justify}
-    .oficio-content table{width:100%;max-width:100%;border-collapse:collapse;margin:12pt 0;font-size:11pt;table-layout:fixed}
-    .oficio-content th,.oficio-content td{border:1px solid #000;padding:6pt 8pt;text-indent:0!important;word-wrap:break-word}
-    .oficio-content th{background:#f0f0f0;font-weight:bold;text-align:center}
-    .oficio-content td p,.oficio-content th p{text-indent:0!important;margin:0}
-    .oficio-content ul,.oficio-content ol{margin:6pt 0 6pt 2cm}
-    .oficio-content li{margin-bottom:3pt}
-    .oficio-fecho{margin-top:18pt;text-indent:2.5cm}
-    .oficio-assinatura{text-align:center;margin-top:24pt}
-    .assinatura-bloco{margin-bottom:30pt}
-    .assinatura-bloco:last-child{margin-bottom:0}
-    .assinatura-linha{width:280px;margin:0 auto 6pt;border-top:1px solid #000;padding-top:6pt}
-    .assinatura-nome-preview{font-weight:bold;text-transform:uppercase}
-    .oficio-footer{position:absolute;bottom:0;left:30mm;right:15mm;height:20mm;border-top:1px solid #000;display:flex;flex-direction:column;justify-content:center;font-size:10pt}
-    .footer-linha1{font-weight:bold}
-    .page-indicator{text-align:center;color:rgba(255,255,255,.8);font-size:.9rem;padding:.75rem;background:rgba(0,0,0,.2);border-radius:var(--radius);margin-top:12px}
-    
-    /* MODAL */
-    .modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center}
-    .modal.show{display:flex}
-    .modal-content{background:#fff;border-radius:var(--radius-lg);width:90%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp .3s ease-out}
-    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.5rem;border-bottom:1px solid var(--border-light)}
-    .modal-title{font-size:1.25rem;font-weight:600;color:var(--primary)}
-    .modal-close{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg-subtle);border:none;border-radius:50%;cursor:pointer;color:var(--text-muted);font-size:1.25rem;transition:var(--transition)}
-    .modal-close:hover{background:var(--error-light);color:var(--error)}
-    .modal-body{padding:1.5rem}
-    .modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border-light);display:flex;gap:.75rem;justify-content:flex-end}
-    /* TOAST */
-    .toast{position:fixed;bottom:2rem;right:2rem;padding:1rem 1.5rem;border-radius:var(--radius);color:#fff;font-weight:500;box-shadow:var(--shadow-lg);transform:translateX(120%);transition:transform .4s cubic-bezier(0.4,0,0.2,1);z-index:2000;display:flex;align-items:center;gap:.75rem}
-    .toast.show{transform:translateX(0)}
-    .toast.success{background:linear-gradient(135deg,var(--success),#10b981)}
-    .toast.error{background:linear-gradient(135deg,var(--error),#ef4444)}
-    .toast.warning{background:linear-gradient(135deg,var(--warning),#f59e0b)}
-    
-    /* CONTEXT MENU */
-    .context-menu{position:fixed;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:3000;min-width:200px;display:none;overflow:hidden}
-    .context-menu.show{display:block;animation:fadeIn .15s ease-out}
-    .context-menu-item{padding:.75rem 1rem;cursor:pointer;font-size:.9rem;color:var(--text);transition:var(--transition);display:flex;align-items:center;gap:.75rem}
-    .context-menu-item:hover{background:var(--primary-subtle);color:var(--primary)}
-    .context-menu-divider{height:1px;background:var(--border);margin:.25rem 0}
-    .context-menu-header{padding:.5rem 1rem;font-weight:600;font-size:.75rem;color:var(--text-muted);background:var(--bg-subtle);text-transform:uppercase;letter-spacing:.05em}
-    
-    /* LOADING */
-    .loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.95);display:none;align-items:center;justify-content:center;z-index:5000;flex-direction:column;gap:1.5rem}
-    .loading-overlay.show{display:flex}
-    .loading-spinner{width:56px;height:56px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    
-    #measureContainer{position:absolute;left:-9999px;top:0;width:165mm;font-family:var(--font-oficio);font-size:12pt;line-height:1.5;visibility:hidden}
-    #measureContainer p{margin:0 0 6pt;text-align:justify}
-    #measureContainer table{width:100%;border-collapse:collapse;margin:12pt 0;font-size:11pt}
-    #measureContainer th,#measureContainer td{border:1px solid #000;padding:6pt 8pt;text-indent:0!important}
-    
-    @media print{
-      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-      body{background:#fff!important;margin:0!important;padding:0!important}
-      
-      /* Esconder interface */
-      #loginScreen,#loadingOverlay,#measureContainer,.header,.tabs,.form-section,.button-group,.user-info,.toast,.page-indicator,.context-menu,.modal,.tabs-container>.tabs,.editor-wrapper{display:none!important}
-      
-      #appContent{display:block!important}
-      .container{padding:0!important;max-width:none!important}
-      .tabs-container{display:block!important;border:none!important;box-shadow:none!important;background:none!important}
-      .tab-content{display:none!important;padding:0!important}
-      #gerador{display:block!important}
-      .preview-section{display:block!important;margin:0!important}
-      .preview-container{background:none!important;padding:0!important;max-height:none!important;overflow:visible!important;border-radius:0!important}
-      .preview-pages{display:block!important;gap:0!important}
-      
-      /* Página A4 */
-      .oficio-page{
-        width:210mm!important;
-        height:297mm!important;
-        box-shadow:none!important;
-        margin:0!important;
-        padding:0!important;
-        page-break-after:always!important;
-        page-break-inside:avoid!important;
-        position:relative!important;
-        overflow:hidden!important;
-        display:block!important;
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: .5rem;
+    }
+
+    /* Header (hidden - info moved to sidebar) */
+    .header {
+      display: none;
+    }
+
+    /* Sidebar Layout */
+    .app-layout {
+      display: flex;
+      min-height: calc(100vh - 1rem);
+      gap: 0;
+    }
+
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%);
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .sidebar-brand {
+      padding: 1.75rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+
+    .sidebar-brand h2 {
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: .25rem;
+    }
+
+    .sidebar-brand p {
+      color: rgba(255,255,255,.6);
+      font-size: .75rem;
+      line-height: 1.4;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sidebar-nav .tab {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: 1rem 1.5rem;
+      background: none;
+      border: none;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      font-weight: 500;
+      color: rgba(255,255,255,.7);
+      transition: all .25s ease;
+      font-size: .95rem;
+      text-align: left;
+      width: 100%;
+    }
+
+    .sidebar-nav .tab:hover {
+      color: #fff;
+      background: rgba(255,255,255,.08);
+      border-left-color: rgba(255,255,255,.3);
+    }
+
+    .sidebar-nav .tab.active {
+      color: #fff;
+      background: rgba(255,255,255,.12);
+      border-left-color: #fff;
+      font-weight: 600;
+    }
+
+    .sidebar-nav .tab-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-user {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+
+    .sidebar-user-email {
+      color: rgba(255,255,255,.7);
+      font-size: .8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .sidebar-user .btn-logout {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+      color: rgba(255,255,255,.8);
+      padding: .4rem .75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .78rem;
+      font-weight: 500;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .sidebar-user .btn-logout:hover {
+      background: rgba(220,38,38,.7);
+      border-color: rgba(220,38,38,.8);
+      color: #fff;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      min-width: 0;
+      background: var(--bg-card);
+      border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      border-left: none;
+      overflow-y: auto;
+      max-height: calc(100vh - 1rem);
+    }
+
+    .main-content-inner {
+      padding: 2rem;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn .3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
-      .oficio-page:last-child{
-        page-break-after:auto!important;
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
-      
-      /* Posicionamento absoluto dos elementos */
-      .oficio-header{
-        position:absolute!important;
-        top:0!important;
-        left:0!important;
-        right:0!important;
-        height:50mm!important;
-        padding:20mm 15mm 0 30mm!important;
-        display:flex!important;
-        align-items:flex-start!important;
-        justify-content:center!important;
+    }
+
+    /* Forms */
+    .form-section {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-family: Arial, sans-serif;
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      padding-bottom: .75rem;
+      border-bottom: 2px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full-width {
+      grid-column: 1/-1;
+    }
+
+    .form-label {
+      font-weight: 600;
+      margin-bottom: .5rem;
+      color: var(--text);
+      font-size: .875rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .form-label.required::after {
+      content: " *";
+      color: var(--error);
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      padding: .875rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-family: inherit;
+      background: var(--bg-card);
+      transition: all .2s ease;
+      color: var(--text);
+      resize: vertical;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 80, 153, .1);
+    }
+
+    .form-input.readonly {
+      background: var(--border-light);
+      cursor: not-allowed;
+      color: var(--text-light);
+    }
+
+    .form-input.error {
+      border-color: var(--error);
+      background: rgba(220, 38, 38, .05);
+    }
+
+    .error-message {
+      color: var(--error);
+      font-size: .875rem;
+      margin-top: .25rem;
+      display: none;
+    }
+
+    .assinaturas-selection {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .assinatura-item {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+    }
+
+    .assinatura-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .assinatura-details {
+      flex: 1;
+    }
+
+    .assinatura-cargo {
+      font-size: .875rem;
+      color: var(--text-light);
+    }
+
+    /* Selected Organs List */
+    .selected-orgs-container {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .selected-org-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: var(--border-light);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .selected-org-info {
+      flex: 1;
+    }
+
+    .selected-org-name {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .selected-org-address {
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .btn-remove-org {
+      background: none;
+      border: none;
+      color: var(--error);
+      cursor: pointer;
+      font-size: 1.25rem;
+      padding: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+
+    .btn-remove-org:hover {
+      opacity: 0.7;
+    }
+
+    /* Hide manual header tools as requested */
+    .header-manual-tool {
+      display: none !important;
+    }
+
+    /* Buttons & UI */
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: .875rem 2rem;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #fff;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--success) 0%, #22c55e 100%);
+      color: #fff;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--warning) 0%, #ea580c 100%);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+
+    .btn-sm {
+      padding: .5rem 1rem;
+      font-size: .875rem;
+    }
+
+    .status-message {
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      border-left: 4px solid;
+      display: none;
+    }
+
+    .status-message.show {
+      display: block;
+    }
+
+    .status-success {
+      background: rgba(22, 163, 74, .1);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(220, 38, 38, .1);
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .status-warning {
+      background: rgba(217, 119, 6, .1);
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+
+    /* Editor Toolbar */
+    .editor-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--border-light);
+      border-radius: var(--radius);
+      justify-content: flex-start;
+    }
+
+    .btn-editor {
+      padding: .5rem 1rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: .875rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all .2s ease;
+    }
+
+    .btn-editor:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .align-label {
+      font-size: .875rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-left: .5rem;
+      margin-right: .25rem;
+    }
+
+    .align-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      align-items: center;
+    }
+
+    /* ===== ESTILOS DO OFÍCIO (A4) - ESTRUTURA RÍGIDA ===== */
+    .preview-section {
+      display: none;
+      margin-top: 2rem;
+    }
+
+    .preview-section.show {
+      display: block;
+    }
+
+    .preview-card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+
+      /* DIMENSÕES EXATAS A4 */
+      width: 210mm;
+      min-height: 297mm;
+
+      margin: 0 auto 1.5rem;
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      color: var(--text);
+
+      /* Layout em coluna para rodapé fixo no final sem sobrepor */
+      display: flex;
+      flex-direction: column;
+
+      overflow-y: auto;
+      max-height: 80vh;
+    }
+
+    /* === ESTILO MÁGICO PARA GERAÇÃO DO PDF === */
+    .preview-card.gerando-pdf {
+      box-shadow: none !important;
+      border: none !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+
+      height: 297mm !important;
+      max-height: 297mm !important;
+      overflow: hidden !important;
+    }
+
+    /* Margens ABNT no modo PDF (html2canvas captura CSS de tela) */
+    .preview-card.gerando-pdf .oficio-body {
+      padding: 3cm 2cm 2cm 3cm !important;
+    }
+
+    /* Cabeçalho */
+    .oficio-header {
+      width: 100%;
+      background: #fff;
+      padding-top: 10px;
+      padding-bottom: 5px;
+      flex: 0 0 auto;
+    }
+
+    .oficio-header img {
+      display: block;
+      margin: 0 auto;
+      max-width: 82%;
+      /* nunca ultrapassa a largura do texto */
+      width: auto;
+      height: auto;
+      max-height: 3.2cm;
+      /* evita cabeçalho alto demais */
+      object-fit: contain;
+    }
+
+    /* Corpo do Texto */
+    .oficio-body {
+      padding: 1cm 3cm 0 3cm;
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      text-align: justify;
+      color: var(--text);
+      flex: 1 1 auto;
+    }
+
+    /* Meta Info (Para, Assunto, etc) */
+    .oficio-meta-info {
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .oficio-para,
+    .oficio-assunto,
+    .oficio-endereco {
+      margin-bottom: .6rem;
+      text-align: left;
+    }
+
+    .label {
+      font-weight: 700;
+    }
+
+    /* === CONTEÚDO E RECUOS === */
+    .oficio-content {
+      margin: 1.2rem 0;
+      line-height: 1.5;
+      text-align: justify;
+      width: 100%;
+    }
+
+    .oficio-content p {
+      display: block;
+      margin: 0;
+      text-indent: 2.5cm !important;
+      text-align: justify;
+      line-height: 1.5;
+    }
+
+    .oficio-content p.no-indent {
+      text-indent: 0 !important;
+      margin-bottom: 1rem;
+    }
+
+    .oficio-content p+p {
+      margin-top: 0;
+    }
+
+    .oficio-content ul,
+    .oficio-content ol {
+      margin: 0;
+      padding-left: 1.25cm;
+    }
+
+    .oficio-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2rem 0;
+      font-size: 10pt;
+    }
+
+    .oficio-content th,
+    .oficio-content td {
+      border: 1px solid #000;
+      padding: 8px 12px;
+      vertical-align: middle;
+      line-height: 1.5;
+    }
+
+    .oficio-content th {
+      background: #f0f0f0;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Remove text-indent from content inside tables */
+    .oficio-content table p,
+    .oficio-content th p,
+    .oficio-content td p {
+      text-indent: 0 !important;
+    }
+
+    /* Assinaturas */
+    .oficio-assinatura {
+      text-align: center;
+      margin: 3rem 0 1.5rem 0;
+    }
+
+    .assinatura-bloco {
+      margin-bottom: 2.5rem;
+    }
+
+    .assinatura-nome-preview {
+      font-weight: 700;
+      font-size: 12pt;
+      margin-bottom: .25rem;
+      border-top: 1px solid #000;
+      padding-top: .5rem;
+      display: inline-block;
+      min-width: 300px;
+    }
+
+    .assinatura-cargo-preview {
+      font-size: 12pt;
+    }
+
+    /* === RODAPÉ NO FIM DA PÁGINA, SEM ABSOLUTE === */
+    .oficio-footer {
+      position: static;
+      width: 100%;
+      background: #fff;
+      padding: 1rem 2cm 1rem 3cm;
+      border-top: 1px solid var(--border);
+      font-family: Arial, sans-serif;
+      font-size: 10pt;
+      color: #000;
+      flex: 0 0 auto;
+    }
+
+    .footer-linha1 {
+      font-weight: 700;
+    }
+
+    .footer-linha2 {
+      margin-top: 2px;
+    }
+
+    /* Modals */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      background: rgba(0, 0, 0, .5);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      margin: 5% auto;
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 600px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .close {
+      color: var(--text-light);
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: var(--error);
+    }
+
+    @media (max-width:768px) {
+      .container {
+        padding: .25rem;
       }
-      .oficio-header img{
-        max-width:100%!important;
-        max-height:28mm!important;
-        object-fit:contain!important;
+
+      .app-layout {
+        flex-direction: column;
       }
-      .oficio-body{
-        position:absolute!important;
-        top:50mm!important;
-        left:30mm!important;
-        right:15mm!important;
-        bottom:20mm!important;
-        overflow:hidden!important;
+
+      .sidebar {
+        width: 100%;
+        min-width: 100%;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        flex-direction: row;
+        flex-wrap: wrap;
       }
-      .oficio-footer{
-        position:absolute!important;
-        bottom:0!important;
-        left:30mm!important;
-        right:15mm!important;
-        height:20mm!important;
-        border-top:1px solid #000!important;
-        display:flex!important;
-        flex-direction:column!important;
-        justify-content:center!important;
-        font-size:10pt!important;
+
+      .sidebar-brand {
+        width: 100%;
+        padding: 1rem 1.25rem;
       }
-      
-      @page{
-        margin:0!important;
-        size:A4 portrait!important;
+
+      .sidebar-brand h2 { font-size: 1rem; }
+      .sidebar-brand p { display: none; }
+
+      .sidebar-nav {
+        flex-direction: row;
+        padding: 0;
+        width: 100%;
+        overflow-x: auto;
       }
+
+      .sidebar-nav .tab {
+        padding: .75rem 1rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        font-size: .85rem;
+        white-space: nowrap;
+        justify-content: center;
+        flex: 1;
+      }
+
+      .sidebar-nav .tab.active {
+        border-left-color: transparent;
+        border-bottom-color: #fff;
+      }
+
+      .sidebar-nav .tab:hover {
+        border-left-color: transparent;
+        border-bottom-color: rgba(255,255,255,.3);
+      }
+
+      .sidebar-user {
+        width: 100%;
+      }
+
+      .main-content {
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        border-left: 1px solid var(--border);
+        max-height: none;
+      }
+
+      .main-content-inner { padding: 1.25rem; }
+
+      .form-section {
+        padding: 1.5rem;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        justify-content: center;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        font-family: Arial, sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .sidebar,
+      .header,
+      .button-group,
+      .status-message,
+      .editor-controls,
+      .form-section,
+      #tabelaHistoricoContainer,
+      #searchHistorico {
+        display: none !important;
+      }
+
+      .app-layout {
+        display: block !important;
+      }
+
+      .main-content {
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      /* Hide all tabs by default in print */
+      .tab-content {
+        display: none !important;
+        padding: 0;
+      }
+
+      /* Only show the Generator tab */
+      #gerador {
+        display: block !important;
+      }
+
+      .preview-section {
+        display: block !important;
+        margin: 0;
+      }
+
+      /* Fix footer visibility in print */
+      .oficio-footer {
+        border-top: 1px solid #000 !important;
+        color: #000 !important;
+      }
+
+      .preview-card {
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        max-height: none;
+        overflow: visible;
+        width: 210mm;
+        height: auto;
+      }
+
+      .oficio-body {
+        margin: 0;
+        padding: 3cm 2cm 2cm 3cm;
+      }
+
+      @page {
+        margin: 0;
+        size: auto;
+      }
+    }
+
+    @page {
+      margin: 0;
+      size: auto;
+    }
+
+    /* Login Screen - Split Layout */
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .login-brand {
+      flex: 1;
+      background: linear-gradient(160deg, #6366f1 0%, #818cf8 40%, #a5b4fc 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-brand::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -20%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .login-brand::after {
+      content: '';
+      position: absolute;
+      bottom: -20%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .login-brand-content {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+    }
+
+    .login-brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .login-brand-logo svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    .login-brand-logo span {
+      font-size: 1.375rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .login-brand h2 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .login-brand p.brand-subtitle {
+      font-size: 1.05rem;
+      opacity: 0.9;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    .login-features {
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .login-feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      opacity: 0.92;
+    }
+
+    .login-feature-item svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+
+    .login-form-side {
+      flex: 1;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .login-card {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      text-align: center;
+      color: var(--text);
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .login-card h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 0.375rem;
+    }
+
+    .login-card .login-subtitle {
+      color: #64748b;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .login-btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 0.875rem 1.75rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 auto;
+      justify-content: center;
+      width: 100%;
+      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+    }
+
+    .login-btn:hover {
+      background: #4f46e5;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    @media (max-width: 768px) {
+      #loginScreen {
+        flex-direction: column;
+      }
+      .login-brand {
+        flex: none;
+        padding: 2rem 1.5rem;
+        min-height: auto;
+      }
+      .login-brand h2 {
+        font-size: 1.5rem;
+      }
+      .login-features {
+        display: none;
+      }
+      .login-form-side {
+        flex: 1;
+        padding: 1.5rem;
+      }
+      .login-card {
+        padding: 2rem 1.5rem;
+      }
+    }
+
+    #appContent {
+      display: none;
+    }
+
+    .user-info {
+      display: none;
     }
   </style>
 </head>
+
 <body>
-  <div id="measureContainer"></div>
-  
-  <div id="loginScreen"><div class="login-card"><h1>Sistema de Ofícios</h1><p>SCFC - Rondonópolis</p><button class="login-btn" id="btnLoginGoogle"><svg viewBox="0 0 18 18" width="18" height="18"><path fill="#fff" d="M0 0h18v18H0z"/><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18h-2.908c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 12.965A5.422 5.422 0 0 1 3.682 11c0-.693.12-1.353.332-1.996l.083-.267H.957A8.996 8.996 0 0 0 0 11c0 1.386.333 2.686.917 3.865l3.047-1.9z" fill="#FBBC05"/><path d="M9 3.88c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.938L3.964 6.95C4.672 4.814 6.656 3.23 9 3.23V3.88z" fill="#EA4335"/></svg>Entrar com Google</button></div></div>
-  <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div>Gerando documento...</div></div>
-  
-  <div id="appContent">
-    <div class="user-info" id="userInfo"><span id="userEmail"></span><button id="btnLogout">Sair</button></div>
-    <div class="container">
-      <header class="header"><h1>Sistema de Ofícios SCFC</h1><p class="subtitle">Superintendência de Controle de Frotas e Combustível</p><p class="meta">Secretaria Municipal de Administração • Rondonópolis - MT</p></header>
-      <div class="tabs-container">
-        <div class="tabs">
-          <button class="tab active" data-tab="gerador">📝 Gerar Ofício</button>
-          <button class="tab" data-tab="historico">📋 Histórico</button>
-          <button class="tab" data-tab="orgaos">🏢 Órgãos</button>
-          <button class="tab" data-tab="assinaturas">✍️ Assinaturas</button>
+  <div id="loginScreen">
+    <!-- Lado esquerdo - Branding -->
+    <div class="login-brand">
+      <div class="login-brand-content">
+        <div class="login-brand-logo">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="6" width="24" height="30" rx="2" stroke="white" stroke-width="2.5" fill="none"/>
+            <rect x="12" y="2" width="24" height="30" rx="2" stroke="white" stroke-width="2.5" fill="rgba(255,255,255,0.15)"/>
+            <line x1="17" y1="10" x2="31" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="17" y1="16" x2="28" y2="16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="17" y1="22" x2="25" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Sistema de Oficios</span>
         </div>
-        <div id="gerador" class="tab-content active">
-          <div class="form-section"><h3 class="section-title">📋 Dados do Ofício</h3><div class="form-grid"><div class="form-group"><label class="form-label">Número</label><input type="text" id="numeroOficio" class="form-input" readonly style="background:#f3f4f6;"></div><div class="form-group"><label class="form-label">Data</label><input type="date" id="dataOficioInput" class="form-input"></div><div class="form-group"><label class="form-label">Local</label><input type="text" id="localOficio" value="Rondonópolis" class="form-input"></div></div></div>
-          <div class="form-section"><h3 class="section-title">🏢 Destinatário(s)</h3><div class="form-grid"><div class="form-group"><label class="form-label">Tratamento</label><select id="tratamento" class="form-select"><option value="Ao Senhor">Ao Senhor</option><option value="À Senhora">À Senhora</option><option value="A Sua Excelência o Senhor">A Sua Excelência o Senhor</option><option value="A Sua Excelência a Senhora">A Sua Excelência a Senhora</option></select></div><div class="form-group"><label class="form-label">Adicionar Órgão</label><div style="display:flex;gap:.5rem;"><select id="orgaoDestinatario" class="form-select" style="flex:1;"><option value="">Selecione...</option></select><button type="button" class="btn btn-primary btn-sm" onclick="adicionarOrgaoAoOficio()">➕</button></div></div></div><div id="selectedOrgaosContainer" class="selected-orgs"></div><div class="error-message" id="orgaoError">Adicione pelo menos um destinatário</div></div>
-          <div class="form-section"><h3 class="section-title">✍️ Assinaturas</h3><div id="assinaturasContainer" class="assinaturas-grid"></div></div>
-          <div class="form-section"><h3 class="section-title">📄 Conteúdo</h3><div class="form-group"><label class="form-label required">Assunto</label><input type="text" id="assuntoOficio" class="form-input" placeholder="Digite o assunto..." maxlength="200"><div class="error-message" id="assuntoError">Digite o assunto</div></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Vocativo</label><input type="text" id="vocativoOficio" class="form-input" value="Senhor(a),"></div><div class="form-group full-width" style="margin-top:1rem;"><label class="form-label required">Texto</label><div class="editor-wrapper"><div class="editor-toolbar"><div class="toolbar-group"><button type="button" class="toolbar-btn" data-cmd="bold" title="Negrito"><b>N</b></button><button type="button" class="toolbar-btn" data-cmd="italic" title="Itálico"><i>I</i></button><button type="button" class="toolbar-btn" data-cmd="underline" title="Sublinhado"><u>S</u></button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" data-cmd="justifyLeft">⬅</button><button type="button" class="toolbar-btn" data-cmd="justifyCenter">↔</button><button type="button" class="toolbar-btn" data-cmd="justifyRight">➡</button><button type="button" class="toolbar-btn active" data-cmd="justifyFull">☰</button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" onclick="aplicarRecuo()" title="Recuo 1ª linha (2,5cm)">¶</button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" data-cmd="insertUnorderedList">•</button><button type="button" class="toolbar-btn" data-cmd="insertOrderedList">1.</button></div><div class="toolbar-group"><button type="button" class="toolbar-btn" onclick="abrirModalTabela()" title="Inserir Tabela">📊</button></div><div class="toolbar-group"><select class="toolbar-select" id="modeloSelect"><option value="">Modelos...</option><option value="comunicacao">Comunicação</option><option value="solicitacao">Solicitação</option><option value="encaminhamento">Encaminhamento</option></select></div></div><div id="editorContent" class="editor-content" contenteditable="true"><p>Informo que...</p></div></div><div class="error-message" id="textoError">Digite o texto</div></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Fecho</label><select id="fechoOficio" class="form-select"><option value="Atenciosamente,">Atenciosamente,</option><option value="Respeitosamente,">Respeitosamente,</option></select></div></div>
-          <div class="button-group"><button class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar</button><button class="btn btn-primary" onclick="visualizarPrevia()">👁️ Visualizar</button><button class="btn btn-success" onclick="gerarOficio()">✅ Gerar e Salvar</button></div>
-          <div id="previewSection" class="preview-section"><div class="preview-container"><div id="previewPages" class="preview-pages"></div></div><div class="button-group"><button class="btn btn-secondary" onclick="editarOficio()">✏️ Editar</button><button class="btn btn-warning" onclick="imprimirOficio()">🖨️ Imprimir</button><button class="btn btn-success" onclick="gerarPDF()">📄 Baixar PDF</button></div></div>
+
+        <h2>Gerencie seus oficios de forma inteligente</h2>
+        <p class="brand-subtitle">Crie, organize e acompanhe oficios com controle de numeracao, historico completo e geracao de PDF.</p>
+
+        <div class="login-features">
+          <div class="login-feature-item">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Geracao automatica de PDF com formatacao oficial
+          </div>
+          <div class="login-feature-item">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Controle de numeracao e protocolos
+          </div>
+          <div class="login-feature-item">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Historico completo com armazenamento na nuvem
+          </div>
         </div>
-        <div id="historico" class="tab-content"><div style="margin-bottom:1rem;display:flex;gap:1rem;flex-wrap:wrap;"><input type="text" id="searchHistorico" placeholder="🔍 Buscar..." class="form-input" style="max-width:300px;"><select id="filterAno" class="form-select" style="max-width:150px;"><option value="">Todos</option></select></div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Número</th><th>Data</th><th>Protocolo</th><th>Destinatário</th><th>Assunto</th><th style="text-align:center;">Ações</th></tr></thead><tbody id="historicoBody"></tbody></table></div></div>
-        <div id="orgaos" class="tab-content"><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="abrirModalOrgao()">➕ Adicionar Órgão</button></div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Código</th><th>Nome</th><th>Endereço</th><th style="text-align:center;">Ações</th></tr></thead><tbody id="orgaosBody"></tbody></table></div></div>
-        <div id="assinaturas" class="tab-content"><div style="margin-bottom:1rem;"><button class="btn btn-primary" onclick="abrirModalAssinatura()">➕ Adicionar Assinatura</button></div><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Nome</th><th>Cargo</th><th>Ordem</th><th style="text-align:center;">Ações</th></tr></thead><tbody id="assinaturasBody"></tbody></table></div></div>
+      </div>
+    </div>
+
+    <!-- Lado direito - Login -->
+    <div class="login-form-side">
+      <div class="login-card">
+        <h1>Bem-vindo de volta</h1>
+        <p class="login-subtitle">Entre com sua conta para acessar o sistema</p>
+        <button class="login-btn" id="btnLoginGoogle">
+          <svg viewBox="0 0 18 18" width="18" height="18">
+            <path fill="#fff" d="M0 0h18v18H0z" opacity="0"/>
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#fff"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18h-2.908c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#fff"/>
+            <path d="M3.964 12.965A5.422 5.422 0 0 1 3.682 11c0-.693.12-1.353.332-1.996.025-.09.055-.178.083-.267H.957A8.996 8.996 0 0 0 0 11c0 1.386.333 2.686.917 3.865.013.025.027.05.04.075l3.007-1.975z" fill="#fff"/>
+            <path d="M9 3.88c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.938L3.964 6.95C4.672 4.814 6.656 3.23 9 3.23V3.88z" fill="#fff"/>
+          </svg>
+          Entrar com Google
+        </button>
+        <p class="login-footer">SCFC/Administracao &middot; Sistema Online</p>
       </div>
     </div>
   </div>
-  
-  <div id="tabelaModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title">📊 Inserir Tabela</h3><button class="modal-close" onclick="fecharModal('tabelaModal')">&times;</button></div><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">Colunas</label><input type="number" id="numColunas" class="form-input" min="1" max="10" value="3"></div><div class="form-group"><label class="form-label">Linhas</label><input type="number" id="numLinhas" class="form-input" min="1" max="50" value="3"></div></div><div class="form-group" style="margin-top:1rem;"><label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;"><input type="checkbox" id="tabelaComCabecalho" checked><span>Primeira linha como cabeçalho</span></label></div><p style="margin-top:1rem;font-size:.85rem;color:var(--text-muted);">💡 Clique direito na tabela para opções de ajuste</p></div><div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal('tabelaModal')">Cancelar</button><button class="btn btn-primary" onclick="inserirTabela()">Inserir</button></div></div></div>
-  <div id="orgaoModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title" id="orgaoModalTitle">🏢 Órgão</h3><button class="modal-close" onclick="fecharModal('orgaoModal')">&times;</button></div><div class="modal-body"><input type="hidden" id="editOrgaoIndex" value="-1"><div class="form-group"><label class="form-label required">Código</label><input type="text" id="editCodigoOrgao" class="form-input" placeholder="Ex: 001"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label required">Nome</label><input type="text" id="editNomeOrgao" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Responsável</label><input type="text" id="editResponsavelOrgao" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Cargo</label><input type="text" id="editCargoResponsavel" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label required">Endereço</label><textarea id="editEnderecoOrgao" class="form-textarea" rows="3"></textarea></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal('orgaoModal')">Cancelar</button><button class="btn btn-success" onclick="salvarOrgao()">Salvar</button></div></div></div>
-  <div id="assinaturaModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 class="modal-title" id="assinaturaModalTitle">✍️ Assinatura</h3><button class="modal-close" onclick="fecharModal('assinaturaModal')">&times;</button></div><div class="modal-body"><input type="hidden" id="editAssinaturaId" value=""><div class="form-group"><label class="form-label required">Nome</label><input type="text" id="editNomeAssinatura" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label required">Cargo</label><input type="text" id="editCargoAssinatura" class="form-input"></div><div class="form-group" style="margin-top:1rem;"><label class="form-label">Ordem</label><input type="number" id="editOrdemAssinatura" class="form-input" min="1"></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal('assinaturaModal')">Cancelar</button><button class="btn btn-success" onclick="salvarAssinatura()">Salvar</button></div></div></div>
-  
-  <!-- CONTEXT MENU MELHORADO -->
-  <div id="tableContextMenu" class="context-menu">
-    <div class="context-menu-header">📐 Ajustar Tabela</div>
-    <div class="context-menu-item" onclick="tableAction('fitToPage')">↔️ Ajustar à largura da página</div>
-    <div class="context-menu-item" onclick="tableAction('fitToContent')">📏 Ajustar ao conteúdo</div>
-    <div class="context-menu-divider"></div>
-    <div class="context-menu-header">➕ Adicionar</div>
-    <div class="context-menu-item" onclick="tableAction('addRowAbove')">Linha acima</div>
-    <div class="context-menu-item" onclick="tableAction('addRowBelow')">Linha abaixo</div>
-    <div class="context-menu-item" onclick="tableAction('addColLeft')">Coluna à esquerda</div>
-    <div class="context-menu-item" onclick="tableAction('addColRight')">Coluna à direita</div>
-    <div class="context-menu-divider"></div>
-    <div class="context-menu-header">🗑️ Excluir</div>
-    <div class="context-menu-item" onclick="tableAction('deleteRow')">Excluir linha</div>
-    <div class="context-menu-item" onclick="tableAction('deleteCol')">Excluir coluna</div>
-    <div class="context-menu-item" style="color:var(--error)" onclick="tableAction('deleteTable')">Excluir tabela</div>
-  </div>
-  
-  <div id="toast" class="toast"></div>
 
-  <script>
-    // ==================== VARIÁVEIS GLOBAIS ====================
-    let proximoNumero = 1;
-    let historico = [];
-    let orgaos = [];
-    let assinaturas = [];
-    let selectedOrgaosList = [];
-    let currentTableCell = null;
-    let currentTable = null;
-    let isResizing = false;
-    let resizeStartX = 0;
-    let resizeStartY = 0;
-    let resizeCol = null;
-    let resizeRow = null;
+  <!-- WRAPPER -->
+  <div id="appContent">
 
-    const PAGE_HEIGHT_MM = 297;
-    const HEADER_HEIGHT_MM = 50;
-    const FOOTER_HEIGHT_MM = 20;
-    const CONTENT_HEIGHT_MM = PAGE_HEIGHT_MM - HEADER_HEIGHT_MM - FOOTER_HEIGHT_MM;
-    const MM_TO_PX = 3.7795275591;
-    const CONTENT_HEIGHT_PX = CONTENT_HEIGHT_MM * MM_TO_PX;
-    
-    // Largura útil da página em pixels (165mm = 210 - 30 - 15)
-    const PAGE_CONTENT_WIDTH_MM = 165;
-    const PAGE_CONTENT_WIDTH_PX = PAGE_CONTENT_WIDTH_MM * MM_TO_PX;
+    <div class="container">
+      <!-- Hidden legacy user-info -->
+      <div class="user-info" id="userInfo">
+        <span id="userEmail"></span>
+        <button id="btnLogout"
+          style="display:none;">Sair</button>
+      </div>
 
-    // ==================== INICIALIZAÇÃO ====================
-    document.addEventListener('DOMContentLoaded', () => {
-      initTabs();
-      initEditor();
-      initDateField();
-      atualizarCamposAutomaticos();
-    });
+      <!-- Hidden legacy header -->
+      <header class="header">
+        <div class="header-content">
+          <h1>Sistema de Ofícios SCFC</h1>
+          <p class="subtitle">Superintendência de Controle de Frotas e Combustível</p>
+          <p class="meta">Secretaria Municipal de Administração, Gestão de Pessoas e Inovação • Rondonópolis - MT</p>
+        </div>
+      </header>
 
-    function initTabs() {
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
+      <div id="statusMessage" class="status-message"></div>
+
+      <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="sidebar-brand">
+            <h2>Ofícios SCFC</h2>
+            <p>Superintendência de Controle de Frotas e Combustível</p>
+          </div>
+
+          <nav class="sidebar-nav">
+            <button class="tab active" onclick="showTab('gerador', this)">
+              <span class="tab-icon">📝</span> Gerar Ofício
+            </button>
+            <button class="tab" onclick="showTab('historico', this)">
+              <span class="tab-icon">📋</span> Histórico
+            </button>
+            <button class="tab" onclick="showTab('orgaos', this)">
+              <span class="tab-icon">🏢</span> Órgãos
+            </button>
+            <button class="tab" onclick="showTab('assinaturas', this)">
+              <span class="tab-icon">✍️</span> Assinaturas
+            </button>
+          </nav>
+
+          <div class="sidebar-user">
+            <span class="sidebar-user-email" id="sidebarUserEmail"></span>
+            <button class="btn-logout" id="btnLogoutSidebar">Sair</button>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+          <div class="main-content-inner">
+
+        <div id="gerador" class="tab-content active">
+          <div class="form-section">
+            <h3 class="section-title">📋 Dados do Ofício</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Número do Ofício</label>
+                <input type="text" id="numeroOficio" class="form-input readonly" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data</label>
+                <input type="text" id="dataOficio" class="form-input readonly" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Local</label>
+                <input type="text" id="localOficio" value="Rondonópolis, MT" class="form-input readonly" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="section-title">🏢 Destinatário(s)</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Adicionar Órgão</label>
+                <div style="display: flex; gap: 0.5rem;">
+                  <select id="orgaoDestinatario" class="form-select" style="flex: 1;">
+                    <option value="">Selecione um órgão...</option>
+                  </select>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="adicionarOrgaoAoOficio()">➕</button>
+                </div>
+                <div class="error-message" id="orgaoError">Adicione pelo menos um órgão destinatário</div>
+              </div>
+            </div>
+            <div id="selectedOrgaosContainer" class="selected-orgs-container">
+              <!-- Órgãos selecionados aparecerão aqui -->
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="section-title">✍️ Assinaturas</h3>
+            <label class="form-label">Selecione as assinaturas:</label>
+            <div id="assinaturasContainer" class="assinaturas-selection"></div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="section-title">📄 Conteúdo</h3>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label class="form-label required">Assunto</label>
+                <input type="text" id="assuntoOficio" class="form-input" placeholder="Digite o assunto..."
+                  maxlength="200" required>
+                <div class="error-message" id="assuntoError">Digite o assunto do ofício</div>
+              </div>
+
+              <div class="form-group full-width">
+                <label class="form-label required">Texto do Ofício</label>
+                <div class="editor-controls">
+                  <button type="button" class="btn-editor header-manual-tool" onclick="triggerHeaderUpload()">🖼️
+                    Carregar
+                    Cabeçalho</button>
+                  <button type="button" class="btn-editor header-manual-tool" onclick="resetHeaderToUrl()">🌐 Usar
+                    URL</button>
+                  <button type="button" class="btn-editor" onclick="abrirModalTabela()">📊 Tabela</button>
+                  <button type="button" class="btn-editor" onclick="inserirLista()">📝 Lista</button>
+                  <button type="button" class="btn-editor" onclick="formatarTexto('bold')">Negrito</button>
+                  <button type="button" class="btn-editor" onclick="formatarTexto('italic')">Itálico</button>
+                  <button type="button" class="btn-editor" onclick="inserirTextoModelo()">📋 Modelo</button>
+                  <span class="align-label">Alinhar:</span>
+                  <div class="align-group">
+                    <button type="button" class="btn-editor" onclick="alinharTexto('left')">⬅️</button>
+                    <button type="button" class="btn-editor" onclick="alinharTexto('center')">↔️</button>
+                    <button type="button" class="btn-editor" onclick="alinharTexto('right')">➡️</button>
+                    <button type="button" class="btn-editor" onclick="alinharTexto('justify')">📄</button>
+                  </div>
+                  <input id="headerFileInput" type="file" accept="image/*" style="display:none" />
+                </div>
+                <textarea id="textoOficio" style="width:100%; min-height: 260px;"></textarea>
+                <div class="error-message" id="textoError">Digite o texto do ofício</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar Campos</button>
+            <button class="btn btn-primary" onclick="visualizarPrevia()">👁️ Visualizar Prévia</button>
+            <button class="btn btn-success" onclick="gerarOficio()" id="btnGerarOficio">✅ Gerar Ofício</button>
+          </div>
+
+          <div id="previewSection" class="preview-section">
+            <div class="preview-card" id="previewCard">
+              <div class="oficio-header">
+                <img id="headerImg" alt="Cabeçalho" />
+              </div>
+
+              <div class="oficio-body">
+                <div class="oficio-meta-info">
+                  <div style="margin-bottom:0.25rem;"><strong id="previewNumeroHeader">OFÍCIO: ---</strong></div>
+                  <div style="text-align:right; margin-bottom:1rem;"><span id="previewDataHeader">---</span></div>
+                  <div id="previewDestinatariosContainer">
+                    <div class="oficio-para"><span class="label">Para:</span> <span id="previewPara">---</span></div>
+                    <div class="oficio-endereco"><span class="label">Endereço:</span> <span
+                        id="previewEndereco">---</span></div>
+                  </div>
+                  <div class="oficio-assunto"><span class="label">Assunto:</span> <span id="previewAssunto">---</span>
+                  </div>
+                </div>
+
+                <div class="oficio-content">
+                  <p class="no-indent"><strong>Prezado(a) Senhor(a),</strong></p>
+                  <div id="previewTexto">---</div>
+                </div>
+
+                <div class="oficio-assinatura" id="previewAssinaturas"></div>
+              </div>
+
+              <div class="oficio-footer">
+                <div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div>
+                <div class="footer-linha2">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>
+              </div>
+            </div>
+
+            <div class="button-group">
+              <button class="btn btn-secondary" onclick="editarOficio()">✏️ Editar</button>
+              <button class="btn btn-warning" onclick="imprimirOficio()">🖨️ Imprimir</button>
+              <button class="btn btn-success" onclick="gerarPDF()">📄 Baixar PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="historico" class="tab-content">
+          <div style="margin-bottom:1.5rem;">
+            <input type="text" id="searchHistorico" placeholder="🔍 Buscar ofícios..." onkeyup="filtrarHistorico()"
+              style="width:100%; max-width:400px; padding:.75rem 1rem; border:2px solid var(--border); border-radius:var(--radius); font-size:1rem;">
+          </div>
+          <div id="tabelaHistoricoContainer">
+            <table class="data-table"
+              style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
+              <thead>
+                <tr style="background:var(--border-light)">
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Número</th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Data</th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Protocolo</th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Destinatário
+                  </th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Assunto</th>
+                  <th style="padding:1rem; text-align:center; border-bottom:1px solid var(--border-light)">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="historicoBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="orgaos" class="tab-content">
+          <div class="button-group" style="justify-content:flex-start; margin-bottom:1.5rem;">
+            <button class="btn btn-primary" onclick="adicionarOrgao()">➕ Adicionar Órgão</button>
+          </div>
+          <div id="tabelaOrgaosContainer">
+            <table class="data-table"
+              style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
+              <thead>
+                <tr style="background:var(--border-light)">
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Código</th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Nome do Órgão
+                  </th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Endereço</th>
+                  <th style="padding:1rem; text-align:center; border-bottom:1px solid var(--border-light)">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="orgaosBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="assinaturas" class="tab-content">
+          <div class="button-group" style="justify-content:flex-start; margin-bottom:1.5rem;">
+            <button class="btn btn-primary" onclick="adicionarAssinatura()">➕ Adicionar Assinatura</button>
+          </div>
+          <div id="tabelaAssinaturasContainer">
+            <table class="data-table"
+              style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
+              <thead>
+                <tr style="background:var(--border-light)">
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Nome</th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Cargo</th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Ordem</th>
+                  <th style="padding:1rem; text-align:center; border-bottom:1px solid var(--border-light)">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="assinaturasBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+          </div><!-- /main-content-inner -->
+        </main><!-- /main-content -->
+      </div><!-- /app-layout -->
+
+    <div id="tabelaModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">📊 Inserir Tabela</h3><span class="close" onclick="fecharModalTabela()">&times;</span>
+        </div>
+        <div style="margin-bottom:1rem;"><label class="form-label">Colunas:</label><input type="number" id="numColunas"
+            min="2" max="10" value="3" class="form-input"></div>
+        <div style="margin-bottom:2rem;"><label class="form-label">Linhas:</label><input type="number" id="numLinhas"
+            min="2" max="30" value="3" class="form-input"></div>
+        <div class="button-group"><button class="btn btn-secondary"
+            onclick="fecharModalTabela()">Cancelar</button><button class="btn btn-primary"
+            onclick="inserirTabelaVazia()">✅ Inserir</button></div>
+      </div>
+    </div>
+
+    <div id="orgaoModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="orgaoModalTitle">🏢 Órgão</h3>
+          <span class="close" onclick="fecharModalOrgao()">&times;</span>
+        </div>
+        <input type="hidden" id="editOrgaoIndex">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label required">Código:</label>
+            <input type="text" id="editCodigoOrgao" class="form-input" placeholder="Ex: 011">
+          </div>
+          <div class="form-group full-width"><label class="form-label required">Nome do Órgão:</label>
+            <input type="text" id="editNomeOrgao" class="form-input">
+          </div>
+          <div class="form-group full-width"><label class="form-label required">Endereço:</label>
+            <textarea id="editEnderecoOrgao" class="form-textarea" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-secondary" onclick="fecharModalOrgao()">Cancelar</button>
+          <button class="btn btn-success" onclick="salvarOrgao()">✅ Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="assinaturaModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="assinaturaModalTitle">✍️ Assinatura</h3>
+          <span class="close" onclick="fecharModalAssinatura()">&times;</span>
+        </div>
+        <input type="hidden" id="editAssinaturaId">
+        <div class="form-grid">
+          <div class="form-group full-width"><label class="form-label required">Nome Completo:</label>
+            <input type="text" id="editNomeAssinatura" class="form-input">
+          </div>
+          <div class="form-group full-width"><label class="form-label required">Cargo/Função:</label>
+            <input type="text" id="editCargoAssinatura" class="form-input">
+          </div>
+          <div class="form-group"><label class="form-label">Ordem de Exibição:</label>
+            <input type="number" id="editOrdemAssinatura" class="form-input">
+          </div>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-secondary" onclick="fecharModalAssinatura()">Cancelar</button>
+          <button class="btn btn-success" onclick="salvarAssinatura()">✅ Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    </div><!-- /container -->
+  </div><!-- /appContent -->
+
+      <script>
+        // --- VARIABLES ---
+        const HEADER_URL_DEFAULT = "https://advantagemidia.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-15-at-10.31.14.jpeg";
+        const STORAGE_KEY = null; // Deprecated
+        const STORAGE_HEADER = "sistemaoficios_header_datauri_v1";
+
+        let proximoNumero = 1;
+        let historico = [];
+        let orgaos = [];
+        let assinaturas = [];
+        let selectedOrgaosList = [];
+
+        // --- INITIALIZATION ---
+        document.addEventListener("DOMContentLoaded", () => {
+          // Data loading is triggered by Firebase Auth State
+          inicializarEditorTiny();
+          initHeaderUpload();
+          applyHeaderSource();
+        });
+
+        // --- FIREBASE DATA HANDLING ---
+        window.carregarDadosOnline = async function () {
+          try {
+            const { collection, getDocs, doc, getDoc, setDoc, query, orderBy } = window.firestore;
+            const db = window.db;
+
+            console.log("Iniciando carregamento de dados...");
+
+            // 1. ORGANS
+            const orgRef = doc(db, "settings", "orgaos");
+            const orgSnap = await getDoc(orgRef);
+            if (orgSnap.exists()) {
+              orgaos = orgSnap.data().list || [];
+            } else {
+              // First time defaults
+              orgaos = [
+                { codigo: '001', nome: 'SECRETARIA MUNICIPAL DE GOVERNO', endereco: 'Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
+                { codigo: '002', nome: 'PROCURADORIA GERAL DO MUNICÍPIO', endereco: 'Rua Barão do Rio Branco, 1500, Centro, Rondonópolis - MT, CEP 78700-050' },
+                { codigo: '003', nome: 'PROCON', endereco: 'Avenida Presidente Dutra, 500, Centro, Rondonópolis - MT, CEP 78700-000' },
+                { codigo: '004', nome: 'SECRETARIA MUNICIPAL DE RECEITA', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
+                { codigo: '005', nome: 'SECRETARIA MUNICIPAL DE EDUCAÇÃO', endereco: 'Rua Barão do Rio Branco, 2020, Centro, Rondonópolis - MT, CEP 78700-050' },
+                { codigo: '006', nome: 'SECRETARIA MUNICIPAL DE TRANSPORTE E TRÂNSITO', endereco: 'Avenida Fernando Corrêa da Costa, 1000, Boa Vista, Rondonópolis - MT, CEP 78705-040' },
+                { codigo: '007', nome: 'SECRETARIA MUNICIPAL DE DESENVOLVIMENTO ECONÔMICO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
+                { codigo: '008', nome: 'SECRETARIA MUNICIPAL DE PROMOÇÃO E ASSISTÊNCIA SOCIAL', endereco: 'Rua Otávio Pitaluga, 1357, Centro, Rondonópolis - MT, CEP 78700-000' },
+                { codigo: '009', nome: 'SECRETARIA MUNICIPAL DE SAÚDE', endereco: 'Rua Prudente de Morais, 800, Centro, Rondonópolis - MT, CEP 78700-000' },
+                { codigo: '010', nome: 'SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' }
+              ];
+              await setDoc(orgRef, { list: orgaos });
+            }
+            atualizarTabelaOrgaos();
+            carregarOrgaos();
+
+            // 2. SIGNATURES
+            const assRef = doc(db, "settings", "assinaturas");
+            const assSnap = await getDoc(assRef);
+            if (assSnap.exists()) {
+              assinaturas = assSnap.data().list || [];
+            } else {
+              assinaturas = [
+                { id: 1, nome: 'Jhonatan Fernandes Gomes', cargo: 'Superintendência de Controle de Frotas e Combustível', ordem: 1 },
+                { id: 2, nome: 'Luciano Rodrigues', cargo: 'Secretário Municipal de Administração, Gestão de Pessoas e Inovação', ordem: 2 }
+              ];
+              await setDoc(assRef, { list: assinaturas });
+            }
+            atualizarTabelaAssinaturas();
+            carregarAssinaturasSelecao();
+
+            // 3. HISTORY (Realtime)
+            const q = query(collection(db, "oficios"), orderBy("id", "desc"));
+            window.firestore.onSnapshot(q, (snapshot) => {
+              historico = [];
+              let maxNum = 0;
+              const currentYear = new Date().getFullYear();
+
+              snapshot.forEach((doc) => {
+                const data = doc.data();
+                data._docId = doc.id;
+                historico.push(data);
+
+                // Calculate next number: check if this oficio is from current year
+                if (data.numero && data.numero.includes(`/${currentYear}/`)) {
+                  const parts = data.numero.split('/');
+                  const n = parseInt(parts[0]);
+                  if (!isNaN(n) && n > maxNum) maxNum = n;
+                }
+              });
+              proximoNumero = maxNum + 1;
+              atualizarCamposAutomaticos();
+              atualizarTabelaHistorico();
+              console.log("Histórico sincronizado.");
+            });
+
+            atualizarCamposAutomaticos();
+            mostrarMensagem("Dados sincronizados com sucesso!", "success");
+
+          } catch (e) {
+            console.error("Erro carregando dados:", e);
+            mostrarMensagem("Erro ao carregar dados.", "error");
+          }
+        };
+
+        // --- PERSISTENCE HELPERS ---
+        async function salvarSettings(type) {
+          const { doc, setDoc } = window.firestore;
+          const db = window.db;
+          if (type === 'orgaos') await setDoc(doc(db, "settings", "orgaos"), { list: orgaos });
+          if (type === 'assinaturas') await setDoc(doc(db, "settings", "assinaturas"), { list: assinaturas });
+        }
+
+        // Placeholder for old calls (deprecated)
+        function salvarDados() { }
+        function carregarDados() { }
+
+        // --- LOCAL STORAGE (HEADER ONLY) ---
+        const safeStorage = (() => {
+          const mem = {};
+          function hasLS() { try { const k = "__t__"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch (e) { return false; } }
+          const useLS = hasLS();
+          return {
+            get: (k) => useLS ? localStorage.getItem(k) : (mem[k] ?? null),
+            set: (k, v) => { if (useLS) localStorage.setItem(k, v); else mem[k] = v; }
+          };
+        })();
+
+
+        /* ===== UI & HELPERS ===== */
+
+        function initHeaderUpload() {
+          const input = document.getElementById("headerFileInput");
+          if (!input) return;
+          input.addEventListener("change", (ev) => {
+            const file = ev.target.files && ev.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              safeStorage.set(STORAGE_HEADER, reader.result);
+              applyHeaderSource();
+              mostrarMensagem("✅ Cabeçalho salvo!", "success");
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+
+        function triggerHeaderUpload() { document.getElementById("headerFileInput").click(); }
+        function resetHeaderToUrl() {
+          safeStorage.set(STORAGE_HEADER, "");
+          applyHeaderSource();
+          mostrarMensagem("🌐 Usando imagem padrão.", "warning");
+        }
+
+        function applyHeaderSource() {
+          const img = document.getElementById("headerImg");
+          if (!img) return;
+
+          // Check for a one-time force reset to ensure new URL is picked up
+          const RESET_FLAG = "reset_header_2026_01_15";
+          if (!safeStorage.get(RESET_FLAG)) {
+            safeStorage.set(STORAGE_HEADER, "");
+            safeStorage.set(RESET_FLAG, "done");
+          }
+
+          const dataUri = safeStorage.get(STORAGE_HEADER);
+          if (dataUri && dataUri.startsWith("data:image")) {
+            img.removeAttribute("crossOrigin");
+            img.src = dataUri;
+          } else {
+            // Default image (Remote or Local)
+            // REMOVED crossOrigin="anonymous" because the server advantagemidia.com DOES NOT support CORS.
+            // This allows the image to show in the browser, though it may still affect PDF/Print stability.
+            img.removeAttribute("crossOrigin");
+            img.src = HEADER_URL_DEFAULT + "?v=" + Date.now();
+          }
+        }
+
+        function inicializarEditorTiny() {
+          tinymce.init({
+            selector: '#textoOficio',
+            height: 320,
+            menubar: false, branding: false, statusbar: false,
+            plugins: 'lists table autoresize',
+            toolbar: 'bold italic | bullist numlist | alignleft aligncenter alignright alignjustify | table',
+            content_style: `body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.5;color:#000;text-align:justify;}
+          p { margin:0; text-indent:2.5cm !important; text-align:justify; line-height:1.5; }
+          p:first-child{ text-indent:0 !important; }
+          table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10pt;}
+          th,td{border:1px solid #000;padding:8px 12px;}
+          th{background:#f0f0f0;font-weight:700;text-align:center;}`,
+            setup: (ed) => { ed.on('init', () => ed.setContent('<p>Venho através deste </p>')); }
+          });
+        }
+
+        function showTab(tabName, btn) {
           document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
           document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-          tab.classList.add('active');
-          document.getElementById(tab.dataset.tab).classList.add('active');
-        });
-      });
-    }
-
-    function initEditor() {
-      const editor = document.getElementById('editorContent');
-      
-      document.querySelectorAll('.toolbar-btn[data-cmd]').forEach(btn => {
-        btn.addEventListener('click', () => { 
-          document.execCommand(btn.dataset.cmd, false, null); 
-          editor.focus(); 
-        });
-      });
-      
-      document.getElementById('modeloSelect').addEventListener('change', (e) => {
-        if (e.target.value) { inserirModelo(e.target.value); e.target.value = ''; }
-      });
-      
-      editor.addEventListener('keydown', (e) => {
-        if (e.ctrlKey) {
-          if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
-          if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
-          if (e.key === 'u') { e.preventDefault(); document.execCommand('underline'); }
-        }
-      });
-      
-      // Context menu para tabelas
-      editor.addEventListener('contextmenu', (e) => {
-        const cell = e.target.closest('td, th');
-        const table = e.target.closest('table');
-        if (cell && table) {
-          e.preventDefault();
-          currentTableCell = cell;
-          currentTable = table;
-          
-          // Destacar tabela selecionada
-          editor.querySelectorAll('table').forEach(t => t.classList.remove('selected'));
-          table.classList.add('selected');
-          
-          const menu = document.getElementById('tableContextMenu');
-          menu.style.left = e.clientX + 'px';
-          menu.style.top = e.clientY + 'px';
-          menu.classList.add('show');
-        }
-      });
-      
-      // Fechar menu ao clicar fora
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.context-menu')) {
-          document.getElementById('tableContextMenu').classList.remove('show');
-        }
-      });
-      
-      // Remover recuo de parágrafo ao digitar em células
-      editor.addEventListener('input', (e) => {
-        const cell = e.target.closest('td, th');
-        if (cell) {
-          // Remover text-indent de qualquer elemento dentro da célula
-          cell.querySelectorAll('p').forEach(p => {
-            p.style.textIndent = '0';
-            p.style.margin = '0';
-          });
-        }
-      });
-      
-      // Inicializar redimensionamento de tabelas
-      initTableResize();
-    }
-
-    // ==================== REDIMENSIONAMENTO DE TABELAS ====================
-    function initTableResize() {
-      const editor = document.getElementById('editorContent');
-      
-      // Double-click para editar largura da coluna
-      editor.addEventListener('dblclick', (e) => {
-        const cell = e.target.closest('td, th');
-        if (cell) {
-          const table = cell.closest('table');
-          // Auto-ajustar coluna ao conteúdo
-          const colIndex = cell.cellIndex;
-          autoFitColumn(table, colIndex);
-        }
-      });
-      
-      // Drag para redimensionar (nas bordas das células)
-      editor.addEventListener('mousedown', (e) => {
-        const cell = e.target.closest('td, th');
-        if (!cell) return;
-        
-        const rect = cell.getBoundingClientRect();
-        const isRightEdge = e.clientX > rect.right - 8;
-        const isBottomEdge = e.clientY > rect.bottom - 8;
-        
-        if (isRightEdge) {
-          isResizing = true;
-          resizeStartX = e.clientX;
-          resizeCol = cell.cellIndex;
-          currentTable = cell.closest('table');
-          document.body.style.cursor = 'col-resize';
-          e.preventDefault();
-        } else if (isBottomEdge) {
-          isResizing = true;
-          resizeStartY = e.clientY;
-          resizeRow = cell.closest('tr').rowIndex;
-          currentTable = cell.closest('table');
-          document.body.style.cursor = 'row-resize';
-          e.preventDefault();
-        }
-      });
-      
-      document.addEventListener('mousemove', (e) => {
-        if (!isResizing || !currentTable) return;
-        
-        if (resizeCol !== null) {
-          const diff = e.clientX - resizeStartX;
-          const cells = currentTable.querySelectorAll(`tr td:nth-child(${resizeCol + 1}), tr th:nth-child(${resizeCol + 1})`);
-          cells.forEach(cell => {
-            const currentWidth = cell.offsetWidth;
-            const newWidth = Math.max(30, currentWidth + diff);
-            cell.style.width = newWidth + 'px';
-          });
-          resizeStartX = e.clientX;
-        }
-        
-        if (resizeRow !== null) {
-          const diff = e.clientY - resizeStartY;
-          const row = currentTable.rows[resizeRow];
-          if (row) {
-            const currentHeight = row.offsetHeight;
-            const newHeight = Math.max(20, currentHeight + diff);
-            row.style.height = newHeight + 'px';
+          if (btn) btn.classList.add('active');
+          else {
+            const tBtn = Array.from(document.querySelectorAll('.tab')).find(b => b.textContent.toLowerCase().includes(tabName));
+            if (tBtn) tBtn.classList.add('active');
           }
-          resizeStartY = e.clientY;
+          document.getElementById(tabName).classList.add('active');
+          if (tabName === 'historico') atualizarTabelaHistorico();
+          if (tabName === 'orgaos') atualizarTabelaOrgaos();
+          if (tabName === 'assinaturas') atualizarTabelaAssinaturas();
         }
-      });
-      
-      document.addEventListener('mouseup', () => {
-        if (isResizing) {
-          isResizing = false;
-          resizeCol = null;
-          resizeRow = null;
-          document.body.style.cursor = '';
+
+        function atualizarCamposAutomaticos() {
+          const d = new Date();
+          document.getElementById('numeroOficio').value = `${String(proximoNumero).padStart(3, '0')}/${d.getFullYear()}/SCFC/ADMINISTRAÇÃO`;
+          const m = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+          document.getElementById('dataOficio').value = `${String(d.getDate()).padStart(2, '0')} de ${m[d.getMonth()]} de ${d.getFullYear()}`;
         }
-      });
-      
-      // Mudar cursor nas bordas
-      editor.addEventListener('mousemove', (e) => {
-        if (isResizing) return;
-        
-        const cell = e.target.closest('td, th');
-        if (!cell) {
-          editor.style.cursor = '';
-          return;
-        }
-        
-        const rect = cell.getBoundingClientRect();
-        const isRightEdge = e.clientX > rect.right - 8;
-        const isBottomEdge = e.clientY > rect.bottom - 8;
-        
-        if (isRightEdge) {
-          editor.style.cursor = 'col-resize';
-        } else if (isBottomEdge) {
-          editor.style.cursor = 'row-resize';
-        } else {
-          editor.style.cursor = '';
-        }
-      });
-    }
 
-    // ==================== RECUO MANUAL ====================
-    function aplicarRecuo() {
-      const selection = window.getSelection();
-      if (!selection.rangeCount) return;
-      
-      // Encontrar o parágrafo atual
-      let node = selection.anchorNode;
-      while (node && node.nodeName !== 'P' && node.id !== 'editorContent') {
-        node = node.parentNode;
-      }
-      
-      if (node && node.nodeName === 'P') {
-        // Toggle do recuo
-        if (node.style.textIndent === '2.5cm') {
-          node.style.textIndent = '';
-          showToast('Recuo removido', 'success');
-        } else {
-          node.style.textIndent = '2.5cm';
-          showToast('Recuo aplicado (2,5cm)', 'success');
-        }
-      } else {
-        // Se não estiver em um parágrafo, criar um novo com recuo
-        document.execCommand('formatBlock', false, 'p');
-        setTimeout(() => {
-          const newNode = selection.anchorNode.parentNode;
-          if (newNode && newNode.nodeName === 'P') {
-            newNode.style.textIndent = '2.5cm';
-            showToast('Recuo aplicado (2,5cm)', 'success');
-          }
-        }, 10);
-      }
-      
-      document.getElementById('editorContent').focus();
-    }
-
-    function autoFitColumn(table, colIndex) {
-      const cells = table.querySelectorAll(`tr td:nth-child(${colIndex + 1}), tr th:nth-child(${colIndex + 1})`);
-      let maxWidth = 50;
-      
-      cells.forEach(cell => {
-        // Criar elemento temporário para medir
-        const temp = document.createElement('span');
-        temp.style.cssText = 'visibility:hidden;position:absolute;white-space:nowrap;font-size:11pt;';
-        temp.textContent = cell.textContent;
-        document.body.appendChild(temp);
-        maxWidth = Math.max(maxWidth, temp.offsetWidth + 20);
-        document.body.removeChild(temp);
-      });
-      
-      cells.forEach(cell => {
-        cell.style.width = maxWidth + 'px';
-      });
-    }
-
-    // ==================== AÇÕES DE TABELA ====================
-    function tableAction(action) {
-      if (!currentTable && !currentTableCell) return;
-      
-      const table = currentTable || currentTableCell?.closest('table');
-      if (!table) return;
-      
-      const row = currentTableCell?.closest('tr');
-      const rowIdx = row?.rowIndex ?? 0;
-      const cellIdx = currentTableCell?.cellIndex ?? 0;
-      const numCols = table.rows[0]?.cells.length || 1;
-      
-      switch (action) {
-        case 'fitToPage':
-          // Ajustar tabela à largura da página (165mm)
-          table.style.width = '100%';
-          table.style.tableLayout = 'fixed';
-          // Distribuir colunas igualmente
-          const colWidth = 100 / numCols;
-          Array.from(table.rows).forEach(r => {
-            Array.from(r.cells).forEach(c => {
-              c.style.width = colWidth + '%';
-            });
-          });
-          showToast('Tabela ajustada à página', 'success');
-          break;
-          
-        case 'fitToContent':
-          // Ajustar ao conteúdo
-          table.style.width = 'auto';
-          table.style.tableLayout = 'auto';
-          Array.from(table.rows).forEach(r => {
-            Array.from(r.cells).forEach(c => {
-              c.style.width = '';
-            });
-          });
-          showToast('Tabela ajustada ao conteúdo', 'success');
-          break;
-          
-        case 'addRowAbove':
-          const ra = table.insertRow(rowIdx);
-          for (let i = 0; i < numCols; i++) {
-            const c = ra.insertCell();
-            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
-          }
-          break;
-          
-        case 'addRowBelow':
-          const rb = table.insertRow(rowIdx + 1);
-          for (let i = 0; i < numCols; i++) {
-            const c = rb.insertCell();
-            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
-          }
-          break;
-          
-        case 'addColLeft':
-          Array.from(table.rows).forEach((r, i) => {
-            const c = r.insertCell(cellIdx);
-            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
-            if (i === 0 && r.cells[cellIdx + 1]?.tagName === 'TH') {
-              const th = document.createElement('th');
-              th.style.cssText = 'border:1px solid #000;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;text-align:center;text-indent:0;';
-              r.replaceChild(th, c);
-            }
-          });
-          break;
-          
-        case 'addColRight':
-          Array.from(table.rows).forEach((r, i) => {
-            const c = r.insertCell(cellIdx + 1);
-            c.style.cssText = 'border:1px solid #000;padding:6pt 8pt;text-indent:0;';
-            if (i === 0 && r.cells[cellIdx]?.tagName === 'TH') {
-              const th = document.createElement('th');
-              th.style.cssText = 'border:1px solid #000;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;text-align:center;text-indent:0;';
-              r.replaceChild(th, c);
-            }
-          });
-          break;
-          
-        case 'deleteRow':
-          if (table.rows.length > 1) {
-            table.deleteRow(rowIdx);
-          } else {
-            table.remove();
-          }
-          break;
-          
-        case 'deleteCol':
-          if (numCols > 1) {
-            Array.from(table.rows).forEach(r => r.deleteCell(cellIdx));
-          } else {
-            table.remove();
-          }
-          break;
-          
-        case 'deleteTable':
-          table.remove();
-          showToast('Tabela excluída', 'success');
-          break;
-      }
-      
-      document.getElementById('tableContextMenu').classList.remove('show');
-      currentTableCell = null;
-      currentTable = null;
-    }
-
-    // ==================== INSERIR TABELA ====================
-    function abrirModalTabela() { 
-      document.getElementById('tabelaModal').classList.add('show'); 
-    }
-
-    function inserirTabela() {
-      const cols = parseInt(document.getElementById('numColunas').value) || 3;
-      const rows = parseInt(document.getElementById('numLinhas').value) || 3;
-      const comCab = document.getElementById('tabelaComCabecalho').checked;
-      
-      // Calcular largura das colunas para caber na página
-      const colWidth = Math.floor(100 / cols);
-      
-      let html = '<table style="width:100%;border-collapse:collapse;margin:12pt 0;table-layout:fixed;">';
-      for (let r = 0; r < rows; r++) {
-        html += '<tr>';
-        for (let c = 0; c < cols; c++) {
-          if (r === 0 && comCab) {
-            html += `<th style="border:1px solid #000;padding:6pt 8pt;background:#f0f0f0;font-weight:bold;text-align:center;text-indent:0;width:${colWidth}%;">Título</th>`;
-          } else {
-            html += `<td style="border:1px solid #000;padding:6pt 8pt;text-indent:0;width:${colWidth}%;"></td>`;
-          }
-        }
-        html += '</tr>';
-      }
-      html += '</table><p></p>';
-      
-      document.getElementById('editorContent').focus();
-      document.execCommand('insertHTML', false, html);
-      fecharModal('tabelaModal');
-      showToast('Tabela inserida! Clique direito para opções', 'success');
-    }
-
-    function inserirModelo(tipo) {
-      const modelos = {
-        comunicacao: '<p>Informo a Vossa Senhoria que...</p><p></p><p>Diante do exposto, coloco-me à disposição para esclarecimentos.</p>',
-        solicitacao: '<p>Solicito a Vossa Senhoria providências quanto a...</p><p></p><p>Certo de contar com a atenção de Vossa Senhoria, agradeço antecipadamente.</p>',
-        encaminhamento: '<p>Encaminho, para conhecimento e providências, cópia do documento...</p><p></p><p>Solicito que sejam adotadas as medidas necessárias.</p>'
-      };
-      document.getElementById('editorContent').innerHTML = modelos[tipo] || '';
-    }
-
-    function initDateField() { 
-      document.getElementById('dataOficioInput').value = new Date().toISOString().split('T')[0]; 
-    }
-
-    function formatarDataExtenso(dataISO) {
-      const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-      const d = new Date(dataISO + 'T12:00:00');
-      return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
-    }
-
-    function atualizarCamposAutomaticos() {
-      document.getElementById('numeroOficio').value = `${String(proximoNumero).padStart(3, '0')}/${new Date().getFullYear()}/SCFC/ADMINISTRAÇÃO`;
-    }
-
-    // ==================== FIREBASE ====================
-    window.carregarDadosOnline = async function() {
-      try {
-        const { collection, doc, getDoc, setDoc, query, orderBy, onSnapshot } = window.firestore;
-        const db = window.db;
-        const orgRef = doc(db, "settings", "orgaos");
-        const orgSnap = await getDoc(orgRef);
-        orgaos = orgSnap.exists() ? orgSnap.data().list || [] : [
-          { codigo: '001', nome: 'SECRETARIA MUNICIPAL DE GOVERNO', endereco: 'Av. Duque de Caxias, 1000, Vila Aurora, Rondonópolis-MT' },
-          { codigo: '002', nome: 'SECRETARIA MUNICIPAL DE EDUCAÇÃO', endereco: 'Rua Barão do Rio Branco, 2020, Centro, Rondonópolis-MT' }
-        ];
-        if (!orgSnap.exists()) await setDoc(orgRef, { list: orgaos });
-        atualizarTabelaOrgaos(); carregarOrgaosSelect();
-        
-        const assRef = doc(db, "settings", "assinaturas");
-        const assSnap = await getDoc(assRef);
-        assinaturas = assSnap.exists() ? assSnap.data().list || [] : [{ id: 1, nome: 'Jhonatan Fernandes Gomes', cargo: 'Superintendente de Controle de Frotas e Combustível', ordem: 1 }];
-        if (!assSnap.exists()) await setDoc(assRef, { list: assinaturas });
-        atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
-        
-        const q = query(collection(db, "oficios"), orderBy("id", "desc"));
-        onSnapshot(q, (snapshot) => {
-          historico = [];
-          let maxNum = 0;
-          const ano = new Date().getFullYear();
-          snapshot.forEach((d) => {
-            const data = d.data();
-            data._docId = d.id;
-            historico.push(data);
-            if (data.numero?.includes(`/${ano}/`)) {
-              const n = parseInt(data.numero.split('/')[0]);
-              if (!isNaN(n) && n > maxNum) maxNum = n;
-            }
-          });
-          proximoNumero = maxNum + 1;
+        function limparFormulario() {
+          document.getElementById('assuntoOficio').value = "";
+          tinymce.get('textoOficio')?.setContent('<p>Venho através deste </p>');
+          document.getElementById('orgaoDestinatario').value = "";
+          selectedOrgaosList = [];
+          renderSelectedOrgaos();
           atualizarCamposAutomaticos();
-          atualizarTabelaHistorico();
-          atualizarFiltroAnos();
-        });
-        showToast('Dados sincronizados!', 'success');
-      } catch (e) { console.error(e); showToast('Erro ao carregar dados', 'error'); }
-    };
-
-    async function salvarSettings(tipo) {
-      const { doc, setDoc } = window.firestore;
-      if (tipo === 'orgaos') await setDoc(doc(window.db, "settings", "orgaos"), { list: orgaos });
-      if (tipo === 'assinaturas') await setDoc(doc(window.db, "settings", "assinaturas"), { list: assinaturas });
-    }
-
-    // ==================== ÓRGÃOS ====================
-    function carregarOrgaosSelect() {
-      const sel = document.getElementById('orgaoDestinatario');
-      sel.innerHTML = '<option value="">Selecione...</option>' + orgaos.sort((a, b) => a.nome.localeCompare(b.nome)).map(o => `<option value="${o.codigo}">${o.codigo} - ${o.nome}</option>`).join('');
-    }
-    function adicionarOrgaoAoOficio() {
-      const cod = document.getElementById('orgaoDestinatario').value;
-      if (!cod) { showToast('Selecione um órgão', 'warning'); return; }
-      if (selectedOrgaosList.find(o => o.codigo === cod)) { showToast('Já adicionado', 'warning'); return; }
-      const org = orgaos.find(o => o.codigo === cod);
-      if (org) { selectedOrgaosList.push({ ...org }); renderSelectedOrgaos(); document.getElementById('orgaoDestinatario').value = ''; }
-    }
-    function removerOrgaoDoOficio(cod) { selectedOrgaosList = selectedOrgaosList.filter(o => o.codigo !== cod); renderSelectedOrgaos(); }
-    function renderSelectedOrgaos() {
-      document.getElementById('selectedOrgaosContainer').innerHTML = selectedOrgaosList.map(o => `<div class="selected-org-item"><div><div class="selected-org-name">${o.nome}</div><div class="selected-org-address">${o.endereco}</div></div><button type="button" class="btn-remove" onclick="removerOrgaoDoOficio('${o.codigo}')">✕</button></div>`).join('');
-    }
-    function atualizarTabelaOrgaos() {
-      document.getElementById('orgaosBody').innerHTML = orgaos.map((o, i) => `<tr><td>${o.codigo}</td><td>${o.nome}</td><td>${o.endereco}</td><td class="actions"><button class="btn btn-sm btn-warning" onclick="editarOrgao(${i})">✏️</button><button class="btn btn-sm btn-error" onclick="excluirOrgao(${i})">🗑️</button></td></tr>`).join('');
-    }
-    function abrirModalOrgao() {
-      document.getElementById('editOrgaoIndex').value = '-1';
-      ['editCodigoOrgao', 'editNomeOrgao', 'editResponsavelOrgao', 'editCargoResponsavel', 'editEnderecoOrgao'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('orgaoModalTitle').textContent = '🏢 Adicionar Órgão';
-      document.getElementById('orgaoModal').classList.add('show');
-    }
-    function editarOrgao(i) {
-      const o = orgaos[i];
-      document.getElementById('editOrgaoIndex').value = i;
-      document.getElementById('editCodigoOrgao').value = o.codigo;
-      document.getElementById('editNomeOrgao').value = o.nome;
-      document.getElementById('editResponsavelOrgao').value = o.responsavel || '';
-      document.getElementById('editCargoResponsavel').value = o.cargoResponsavel || '';
-      document.getElementById('editEnderecoOrgao').value = o.endereco;
-      document.getElementById('orgaoModalTitle').textContent = '🏢 Editar Órgão';
-      document.getElementById('orgaoModal').classList.add('show');
-    }
-    async function salvarOrgao() {
-      const idx = parseInt(document.getElementById('editOrgaoIndex').value);
-      const codigo = document.getElementById('editCodigoOrgao').value.trim();
-      const nome = document.getElementById('editNomeOrgao').value.trim();
-      const responsavel = document.getElementById('editResponsavelOrgao').value.trim();
-      const cargoResponsavel = document.getElementById('editCargoResponsavel').value.trim();
-      const endereco = document.getElementById('editEnderecoOrgao').value.trim();
-      if (!codigo || !nome) { showToast('Preencha código e nome', 'warning'); return; }
-      const novo = { codigo, nome, responsavel, cargoResponsavel, endereco };
-      if (idx >= 0) orgaos[idx] = novo; else orgaos.push(novo);
-      await salvarSettings('orgaos');
-      atualizarTabelaOrgaos(); carregarOrgaosSelect();
-      fecharModal('orgaoModal');
-      showToast('Órgão salvo!', 'success');
-    }
-    async function excluirOrgao(i) {
-      if (confirm('Excluir?')) {
-        orgaos.splice(i, 1);
-        await salvarSettings('orgaos');
-        atualizarTabelaOrgaos(); carregarOrgaosSelect();
-        showToast('Excluído', 'success');
-      }
-    }
-
-    // ==================== ASSINATURAS ====================
-    function carregarAssinaturasSelecao() {
-      document.getElementById('assinaturasContainer').innerHTML = assinaturas.sort((a, b) => a.ordem - b.ordem).map(a => `<label class="assinatura-item"><input type="checkbox" value="${a.id}" checked><div><div class="assinatura-nome">${a.nome}</div><div class="assinatura-cargo">${a.cargo}</div></div></label>`).join('');
-    }
-    function obterAssinaturasSelecionadas() {
-      const ids = [...document.querySelectorAll('#assinaturasContainer input:checked')].map(x => parseInt(x.value));
-      return assinaturas.filter(a => ids.includes(a.id)).sort((a, b) => a.ordem - b.ordem);
-    }
-    function atualizarTabelaAssinaturas() {
-      document.getElementById('assinaturasBody').innerHTML = assinaturas.sort((a, b) => a.ordem - b.ordem).map(a => `<tr><td>${a.nome}</td><td>${a.cargo}</td><td>${a.ordem}</td><td class="actions"><button class="btn btn-sm btn-warning" onclick="editarAssinatura(${a.id})">✏️</button><button class="btn btn-sm btn-error" onclick="excluirAssinatura(${a.id})">🗑️</button></td></tr>`).join('');
-    }
-    function abrirModalAssinatura() {
-      document.getElementById('editAssinaturaId').value = '';
-      document.getElementById('editNomeAssinatura').value = '';
-      document.getElementById('editCargoAssinatura').value = '';
-      document.getElementById('editOrdemAssinatura').value = assinaturas.length + 1;
-      document.getElementById('assinaturaModalTitle').textContent = '✍️ Adicionar Assinatura';
-      document.getElementById('assinaturaModal').classList.add('show');
-    }
-    function editarAssinatura(id) {
-      const a = assinaturas.find(x => x.id === id);
-      if (!a) return;
-      document.getElementById('editAssinaturaId').value = a.id;
-      document.getElementById('editNomeAssinatura').value = a.nome;
-      document.getElementById('editCargoAssinatura').value = a.cargo;
-      document.getElementById('editOrdemAssinatura').value = a.ordem;
-      document.getElementById('assinaturaModalTitle').textContent = '✍️ Editar Assinatura';
-      document.getElementById('assinaturaModal').classList.add('show');
-    }
-    async function salvarAssinatura() {
-      const idStr = document.getElementById('editAssinaturaId').value;
-      const nome = document.getElementById('editNomeAssinatura').value.trim();
-      const cargo = document.getElementById('editCargoAssinatura').value.trim();
-      const ordem = parseInt(document.getElementById('editOrdemAssinatura').value) || 99;
-      if (!nome || !cargo) { showToast('Preencha nome e cargo', 'warning'); return; }
-      if (idStr) {
-        const id = parseInt(idStr);
-        const idx = assinaturas.findIndex(x => x.id === id);
-        if (idx >= 0) assinaturas[idx] = { id, nome, cargo, ordem };
-      } else {
-        assinaturas.push({ id: Date.now(), nome, cargo, ordem });
-      }
-      await salvarSettings('assinaturas');
-      atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
-      fecharModal('assinaturaModal');
-      showToast('Assinatura salva!', 'success');
-    }
-    async function excluirAssinatura(id) {
-      if (confirm('Excluir?')) {
-        assinaturas = assinaturas.filter(x => x.id !== id);
-        await salvarSettings('assinaturas');
-        atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
-        showToast('Excluída', 'success');
-      }
-    }
-
-    // ==================== HISTÓRICO ====================
-    function atualizarTabelaHistorico() {
-      const search = document.getElementById('searchHistorico').value.toLowerCase();
-      const ano = document.getElementById('filterAno').value;
-      let filtered = historico;
-      if (search) filtered = filtered.filter(o => o.numero?.toLowerCase().includes(search) || o.assunto?.toLowerCase().includes(search) || o.destinatario?.toLowerCase().includes(search));
-      if (ano) filtered = filtered.filter(o => o.numero?.includes(`/${ano}/`));
-      if (!filtered.length) { document.getElementById('historicoBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Nenhum ofício</td></tr>'; return; }
-      document.getElementById('historicoBody').innerHTML = filtered.map((o, i) => {
-        const proto = o.protocolo ? `<span style="color:var(--success);font-weight:500;cursor:pointer;" onclick="lancarProtocolo(${i})">${o.protocolo}</span>` : `<button class="btn btn-sm btn-secondary" onclick="lancarProtocolo(${i})">Lançar</button>`;
-        return `<tr><td><strong>${o.numero}</strong></td><td>${o.data}</td><td>${proto}</td><td>${o.destinatario}</td><td>${o.assunto}</td><td class="actions"><button class="btn btn-sm btn-success" onclick="gerarPDFHistorico(${i})">📄</button><button class="btn btn-sm btn-primary" onclick="editarHistorico(${i})">✏️</button><button class="btn btn-sm btn-error" onclick="excluirHistorico(${i})">🗑️</button></td></tr>`;
-      }).join('');
-    }
-    function atualizarFiltroAnos() {
-      const anos = new Set();
-      historico.forEach(o => { const m = o.numero?.match(/\/(\d{4})\//); if (m) anos.add(m[1]); });
-      document.getElementById('filterAno').innerHTML = '<option value="">Todos</option>' + Array.from(anos).sort((a, b) => b - a).map(a => `<option value="${a}">${a}</option>`).join('');
-    }
-    document.getElementById('searchHistorico')?.addEventListener('input', atualizarTabelaHistorico);
-    document.getElementById('filterAno')?.addEventListener('change', atualizarTabelaHistorico);
-    async function lancarProtocolo(i) {
-      const o = historico[i];
-      if (!o?._docId) return;
-      const novo = prompt('Protocolo:', o.protocolo || '');
-      if (novo !== null) {
-        await window.firestore.updateDoc(window.firestore.doc(window.db, "oficios", o._docId), { protocolo: novo.trim() });
-        showToast('Protocolo atualizado!', 'success');
-      }
-    }
-    function editarHistorico(i) {
-      if (!confirm('Carregar para edição?')) return;
-      const o = historico[i];
-      document.getElementById('numeroOficio').value = o.numero;
-      if (o.dataCompleta) {
-        const p = o.dataCompleta.match(/(\d+) de (\w+) de (\d{4})/);
-        if (p) {
-          const m = { janeiro: '01', fevereiro: '02', março: '03', abril: '04', maio: '05', junho: '06', julho: '07', agosto: '08', setembro: '09', outubro: '10', novembro: '11', dezembro: '12' };
-          document.getElementById('dataOficioInput').value = `${p[3]}-${m[p[2].toLowerCase()]}-${p[1].padStart(2, '0')}`;
         }
-      }
-      document.getElementById('assuntoOficio').value = o.assunto;
-      document.getElementById('editorContent').innerHTML = o.texto;
-      if (o.vocativo) document.getElementById('vocativoOficio').value = o.vocativo;
-      if (o.fecho) document.getElementById('fechoOficio').value = o.fecho;
-      selectedOrgaosList = o.destinatarios?.length ? [...o.destinatarios] : [];
-      renderSelectedOrgaos();
-      document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
-      (o.assinaturas || []).forEach(sig => { const cb = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`); if (cb) cb.checked = true; });
-      document.querySelector('.tab[data-tab="gerador"]').click();
-      showToast('Carregado', 'success');
-    }
-    async function excluirHistorico(i) {
-      if (confirm('Excluir permanentemente?')) {
-        const o = historico[i];
-        if (o?._docId) {
-          await window.firestore.deleteDoc(window.firestore.doc(window.db, "oficios", o._docId));
-          showToast('Excluído', 'success');
+
+        /* Editor/Tabela */
+        function abrirModalTabela() { document.getElementById('tabelaModal').style.display = 'block'; }
+        function fecharModalTabela() { document.getElementById('tabelaModal').style.display = 'none'; }
+        function inserirTabelaVazia() {
+          const c = document.getElementById('numColunas').value, r = document.getElementById('numLinhas').value, ed = tinymce.get('textoOficio');
+          if (ed) ed.execCommand('mceInsertTable', false, { rows: r, columns: c });
+          fecharModalTabela();
         }
-      }
-    }
+        function inserirLista() { tinymce.get('textoOficio')?.execCommand('InsertUnorderedList'); }
+        function formatarTexto(t) { tinymce.get('textoOficio')?.execCommand(t === 'bold' ? 'Bold' : 'Italic'); }
+        function alinharTexto(t) { tinymce.get('textoOficio')?.execCommand(t === 'justify' ? 'JustifyFull' : 'Justify' + t.charAt(0).toUpperCase() + t.slice(1)); }
+        function inserirTextoModelo() { tinymce.get('textoOficio')?.setContent(`<p>Na oportunidade de cumprimentá-lo(a), venho por meio deste informar que:</p><p>&nbsp;</p><p>Para tanto, solicito que sejam tomadas as devidas providências.</p>`); }
+        function getTextoHTML() { return tinymce.get('textoOficio')?.getContent() || ''; }
+        function getTextoPlain() { return tinymce.get('textoOficio')?.getContent({ format: 'text' }) || ''; }
 
-    // ==================== VALIDAÇÃO ====================
-    function validarFormulario() {
-      let ok = true;
-      if (!selectedOrgaosList.length) { document.getElementById('orgaoError').style.display = 'block'; ok = false; } else document.getElementById('orgaoError').style.display = 'none';
-      if (!document.getElementById('assuntoOficio').value.trim()) { document.getElementById('assuntoError').style.display = 'block'; ok = false; } else document.getElementById('assuntoError').style.display = 'none';
-      if (!document.getElementById('editorContent').innerText.trim()) { document.getElementById('textoError').style.display = 'block'; ok = false; } else document.getElementById('textoError').style.display = 'none';
-      return ok;
-    }
-
-    // ==================== PAGINAÇÃO ====================
-    function medirAltura(html) {
-      const container = document.getElementById('measureContainer');
-      container.innerHTML = html;
-      const altura = container.offsetHeight;
-      container.innerHTML = '';
-      return altura;
-    }
-
-    function processarTabelasParaPDF(html) {
-      // Garantir que tabelas não excedam a largura da página
-      const temp = document.createElement('div');
-      temp.innerHTML = html;
-      
-      temp.querySelectorAll('table').forEach(table => {
-        table.style.width = '100%';
-        table.style.maxWidth = '100%';
-        table.style.tableLayout = 'fixed';
-        table.style.borderCollapse = 'collapse';
-        
-        // Remover text-indent de todas as células
-        table.querySelectorAll('td, th').forEach(cell => {
-          cell.style.textIndent = '0';
-          cell.style.wordWrap = 'break-word';
-          cell.style.overflowWrap = 'break-word';
-          // Remover text-indent de parágrafos dentro das células
-          cell.querySelectorAll('p').forEach(p => {
-            p.style.textIndent = '0';
-            p.style.margin = '0';
+        /* Orgãos/Assinaturas */
+        function carregarOrgaos() {
+          const s = document.getElementById('orgaoDestinatario');
+          s.innerHTML = '<option value="">Selecione...</option>';
+          orgaos.sort((a, b) => a.nome.localeCompare(b.nome)).forEach(o => {
+            const op = document.createElement('option');
+            op.value = o.codigo;
+            op.textContent = o.codigo + ' - ' + o.nome;
+            s.appendChild(op);
           });
-        });
-      });
-      
-      return temp.innerHTML;
-    }
-
-    function gerarPaginas(dados) {
-      const headerImg = 'https://advantagemidia.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-15-at-10.31.14.jpeg';
-      
-      // Processar texto para garantir tabelas corretas
-      const textoProcessado = processarTabelasParaPDF(dados.texto);
-      
-      // Gerar cabeçalho do ofício (só na primeira página)
-      let cabecalhoOficio = '';
-      cabecalhoOficio += `<div class="oficio-numero">OFÍCIO Nº ${dados.numero}</div>`;
-      cabecalhoOficio += `<div class="oficio-data">${dados.dataExtenso}</div>`;
-      cabecalhoOficio += '<div class="oficio-destinatario">';
-      dados.destinatarios.forEach(org => {
-        cabecalhoOficio += '<div class="oficio-destinatario-item">';
-        cabecalhoOficio += `<div>${dados.tratamento}</div>`;
-        if (org.responsavel) cabecalhoOficio += `<div><strong>${org.responsavel}</strong></div>`;
-        if (org.cargoResponsavel) cabecalhoOficio += `<div>${org.cargoResponsavel}</div>`;
-        cabecalhoOficio += `<div>${org.nome}</div>`;
-        cabecalhoOficio += `<div>${org.endereco}</div>`;
-        cabecalhoOficio += '</div>';
-      });
-      cabecalhoOficio += '</div>';
-      cabecalhoOficio += `<div class="oficio-assunto"><strong>Assunto:</strong> ${dados.assunto}</div>`;
-      cabecalhoOficio += `<div class="oficio-vocativo" style="text-indent:2.5cm">${dados.vocativo}</div>`;
-      
-      // Gerar assinaturas
-      let assinaturasHTML = '<div class="oficio-assinatura">';
-      dados.assinaturas.forEach(a => {
-        assinaturasHTML += `<div class="assinatura-bloco"><div class="assinatura-linha"><div class="assinatura-nome-preview">${a.nome}</div><div>${a.cargo}</div></div></div>`;
-      });
-      assinaturasHTML += '</div>';
-      
-      // Criar container temporário para medir alturas com precisão
-      // IMPORTANTE: usar as mesmas dimensões e estilos da página real
-      const measureDiv = document.createElement('div');
-      measureDiv.style.cssText = `
-        position: absolute;
-        left: -9999px;
-        top: 0;
-        width: 165mm;
-        font-family: 'Carlito', 'Calibri', sans-serif;
-        font-size: 12pt;
-        line-height: 1.5;
-        visibility: hidden;
-      `;
-      document.body.appendChild(measureDiv);
-      
-      // Função para medir altura real
-      function medir(html) {
-        measureDiv.innerHTML = html;
-        const h = measureDiv.getBoundingClientRect().height;
-        return h;
-      }
-      
-      // Altura disponível em pixels
-      // A4 = 297mm, cabeçalho institucional = 50mm, rodapé = 20mm
-      // Área útil = 227mm
-      // 1mm ≈ 3.7795px em 96dpi
-      const MM_PX = 3.7795;
-      const ALTURA_CONTEUDO_PX = 227 * MM_PX; // ~858px
-      
-      // Medir altura do cabeçalho do ofício
-      const alturaCabecalhoOficio = medir(cabecalhoOficio);
-      console.log('Altura cabeçalho ofício:', alturaCabecalhoOficio, 'px');
-      console.log('Altura área útil:', ALTURA_CONTEUDO_PX, 'px');
-      
-      // Altura disponível na primeira página (descontando cabeçalho do ofício)
-      const alturaDisponivelPrimeira = ALTURA_CONTEUDO_PX - alturaCabecalhoOficio - 20;
-      // Altura disponível nas demais páginas
-      const alturaDisponivelDemais = ALTURA_CONTEUDO_PX - 20;
-      
-      console.log('Altura disponível 1ª página:', alturaDisponivelPrimeira, 'px');
-      console.log('Altura disponível demais:', alturaDisponivelDemais, 'px');
-      
-      // Extrair blocos de conteúdo
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = textoProcessado;
-      const blocos = [];
-      
-      tempDiv.childNodes.forEach(node => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const h = medir(node.outerHTML);
-          blocos.push({ html: node.outerHTML, altura: h });
-          console.log('Bloco:', node.tagName, 'altura:', h);
-        } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
-          const html = `<p>${node.textContent}</p>`;
-          const h = medir(html);
-          blocos.push({ html, altura: h });
-          console.log('Texto:', html.substring(0,50), 'altura:', h);
         }
-      });
-      
-      // Adicionar fecho
-      const fechoHTML = `<div class="oficio-fecho">${dados.fecho}</div>`;
-      const alturaFecho = medir(fechoHTML);
-      blocos.push({ html: fechoHTML, altura: alturaFecho });
-      console.log('Fecho altura:', alturaFecho);
-      
-      // Adicionar assinaturas
-      const alturaAss = medir(assinaturasHTML);
-      blocos.push({ html: assinaturasHTML, altura: alturaAss });
-      console.log('Assinaturas altura:', alturaAss);
-      
-      // Remover container de medição
-      document.body.removeChild(measureDiv);
-      
-      // Calcular altura total
-      const alturaTotal = blocos.reduce((sum, b) => sum + b.altura, 0);
-      console.log('Altura total conteúdo:', alturaTotal, 'px');
-      
-      // Distribuir blocos nas páginas
-      const paginas = [];
-      let paginaAtual = { blocos: [], altura: 0, isPrimeira: true };
-      
-      for (const bloco of blocos) {
-        const alturaDisponivel = paginaAtual.isPrimeira ? alturaDisponivelPrimeira : alturaDisponivelDemais;
-        
-        // Se não cabe na página atual e já tem conteúdo, criar nova página
-        if (paginaAtual.altura + bloco.altura > alturaDisponivel && paginaAtual.blocos.length > 0) {
-          console.log('Nova página! Altura atual:', paginaAtual.altura, 'Disponível:', alturaDisponivel);
-          paginas.push(paginaAtual);
-          paginaAtual = { blocos: [], altura: 0, isPrimeira: false };
+
+        function adicionarOrgaoAoOficio() {
+          const select = document.getElementById('orgaoDestinatario');
+          const codigo = select.value;
+          if (!codigo) {
+            mostrarMensagem("Selecione um órgão para adicionar.", "warning");
+            return;
+          }
+
+          if (selectedOrgaosList.find(o => o.codigo === codigo)) {
+            mostrarMensagem("Este órgão já foi adicionado.", "warning");
+            return;
+          }
+
+          const org = orgaos.find(o => o.codigo === codigo);
+          if (org) {
+            selectedOrgaosList.push({ ...org });
+            renderSelectedOrgaos();
+            select.value = "";
+          }
         }
-        
-        paginaAtual.blocos.push(bloco.html);
-        paginaAtual.altura += bloco.altura;
-      }
-      
-      // Adicionar última página se tem conteúdo
-      if (paginaAtual.blocos.length > 0) {
-        paginas.push(paginaAtual);
-      }
-      
-      console.log('Total de páginas geradas:', paginas.length);
-      
-      // Gerar HTML das páginas
-      let htmlPaginas = '';
-      
-      paginas.forEach((pagina, idx) => {
-        htmlPaginas += `<div class="oficio-page" data-page="${idx + 1}">`;
-        htmlPaginas += `<div class="oficio-header"><img src="${headerImg}" alt="Cabeçalho"></div>`;
-        htmlPaginas += '<div class="oficio-body">';
-        
-        // Cabeçalho do ofício só na primeira página
-        if (pagina.isPrimeira) {
-          htmlPaginas += cabecalhoOficio;
+
+        function removerOrgaoDoOficio(codigo) {
+          selectedOrgaosList = selectedOrgaosList.filter(o => o.codigo !== codigo);
+          renderSelectedOrgaos();
         }
-        
-        // Conteúdo da página
-        htmlPaginas += '<div class="oficio-content">';
-        htmlPaginas += pagina.blocos.join('');
-        htmlPaginas += '</div>';
-        
-        htmlPaginas += '</div>'; // fecha body
-        htmlPaginas += `<div class="oficio-footer"><div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div><div>Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div></div>`;
-        htmlPaginas += '</div>'; // fecha page
-      });
-      
-      // Adicionar indicador de páginas
-      if (paginas.length > 1) {
-        htmlPaginas += `<div class="page-indicator">${paginas.length} páginas</div>`;
-      }
-      
-      return { html: htmlPaginas, total: paginas.length };
-    }
 
-    function visualizarPrevia() {
-      if (!validarFormulario()) { showToast('Preencha os campos obrigatórios', 'warning'); return; }
-      
-      const dados = {
-        numero: document.getElementById('numeroOficio').value,
-        dataExtenso: `${document.getElementById('localOficio').value}, ${formatarDataExtenso(document.getElementById('dataOficioInput').value)}.`,
-        tratamento: document.getElementById('tratamento').value,
-        destinatarios: selectedOrgaosList,
-        assunto: document.getElementById('assuntoOficio').value,
-        vocativo: document.getElementById('vocativoOficio').value,
-        texto: document.getElementById('editorContent').innerHTML,
-        fecho: document.getElementById('fechoOficio').value,
-        assinaturas: obterAssinaturasSelecionadas()
-      };
-      
-      const resultado = gerarPaginas(dados);
-      
-      let htmlFinal = resultado.html;
-      if (resultado.total > 1) {
-        htmlFinal += `<div class="page-indicator">${resultado.total} páginas</div>`;
-      }
-      
-      document.getElementById('previewPages').innerHTML = htmlFinal;
-      document.getElementById('previewSection').classList.add('show');
-      document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
-    }
+        function renderSelectedOrgaos() {
+          const container = document.getElementById('selectedOrgaosContainer');
+          if (!container) return;
 
-    function editarOficio() {
-      document.getElementById('previewSection').classList.remove('show');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+          if (selectedOrgaosList.length === 0) {
+            container.innerHTML = '<!-- Órgãos selecionados aparecerão aqui -->';
+            return;
+          }
 
-    // ==================== GERAR E SALVAR ====================
-    async function gerarOficio() {
-      if (!validarFormulario()) { showToast('Preencha os campos obrigatórios', 'warning'); return; }
-      const { addDoc, collection } = window.firestore;
-      const dataISO = document.getElementById('dataOficioInput').value;
-      const destStr = selectedOrgaosList.map(o => o.nome).join('; ');
-      const novo = {
-        id: Date.now(),
-        numero: document.getElementById('numeroOficio').value,
-        data: new Date().toLocaleDateString('pt-BR'),
-        dataCompleta: formatarDataExtenso(dataISO),
-        destinatario: destStr,
-        destinatarios: selectedOrgaosList,
-        assunto: document.getElementById('assuntoOficio').value,
-        vocativo: document.getElementById('vocativoOficio').value,
-        texto: document.getElementById('editorContent').innerHTML,
-        fecho: document.getElementById('fechoOficio').value,
-        assinaturas: obterAssinaturasSelecionadas(),
-        protocolo: ""
-      };
-      try {
-        await addDoc(collection(window.db, "oficios"), novo);
-        showToast('Ofício salvo!', 'success');
-        visualizarPrevia();
-        limparFormulario();
-      } catch (e) { console.error(e); showToast('Erro ao salvar', 'error'); }
-    }
-
-    function limparFormulario() {
-      document.getElementById('assuntoOficio').value = '';
-      document.getElementById('vocativoOficio').value = 'Senhor(a),';
-      document.getElementById('editorContent').innerHTML = '<p>Informo que...</p>';
-      document.getElementById('fechoOficio').value = 'Atenciosamente,';
-      selectedOrgaosList = [];
-      renderSelectedOrgaos();
-      atualizarCamposAutomaticos();
-      initDateField();
-      document.getElementById('previewSection').classList.remove('show');
-    }
-
-    // ==================== PDF ====================
-    async function gerarPDF() {
-      showLoading(true);
-      try {
-        let pagesArray = document.querySelectorAll('#previewPages .oficio-page');
-        
-        if (!pagesArray.length) { 
-          visualizarPrevia(); 
-          await new Promise(r => setTimeout(r, 500));
-          pagesArray = document.querySelectorAll('#previewPages .oficio-page');
+          container.innerHTML = selectedOrgaosList.map(o => `
+            <div class="selected-org-item">
+              <div class="selected-org-info">
+                <div class="selected-org-name">${o.nome}</div>
+                <div class="selected-org-address">${o.endereco}</div>
+              </div>
+              <button type="button" class="btn-remove-org" onclick="removerOrgaoDoOficio('${o.codigo}')">✕</button>
+            </div>
+          `).join('');
         }
-        
-        if (!pagesArray.length) {
-          showToast('Erro: nenhuma página para gerar', 'error');
-          return;
+
+        // Deprecated single organ filler
+        function preencherOrgao() { }
+        function carregarAssinaturasSelecao() {
+          document.getElementById('assinaturasContainer').innerHTML =
+            assinaturas.sort((a, b) => a.ordem - b.ordem)
+              .map(a => `<div class="assinatura-item"><input type="checkbox" value="${a.id}" checked><div class="assinatura-details"><div class="assinatura-nome">${a.nome}</div><div class="assinatura-cargo">${a.cargo}</div></div></div>`)
+              .join('');
         }
-        
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        for (let i = 0; i < pagesArray.length; i++) {
-          const canvas = await html2canvas(pagesArray[i], { 
-            scale: 2, 
-            useCORS: true, 
-            backgroundColor: '#ffffff', 
-            logging: false 
+        function obterAssinaturasSelecionadas() {
+          const ids = [...document.querySelectorAll('#assinaturasContainer input:checked')].map(x => parseInt(x.value));
+          return assinaturas.filter(a => ids.includes(a.id)).sort((a, b) => a.ordem - b.ordem);
+        }
+
+        /* Validação */
+        function validarFormulario() {
+          let ok = true;
+          if (selectedOrgaosList.length === 0) { document.getElementById('orgaoError').style.display = 'block'; ok = false; } else document.getElementById('orgaoError').style.display = 'none';
+          if (!document.getElementById('assuntoOficio').value) { document.getElementById('assuntoError').style.display = 'block'; ok = false; } else document.getElementById('assuntoError').style.display = 'none';
+          if (!getTextoPlain().trim()) { document.getElementById('textoError').style.display = 'block'; ok = false; } else document.getElementById('textoError').style.display = 'none';
+          return ok;
+        }
+
+        /* Preview & Generating */
+        function visualizarPrevia() {
+          applyHeaderSource();
+          if (!validarFormulario()) return;
+
+          document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${document.getElementById('numeroOficio').value}`;
+          document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${document.getElementById('dataOficio').value}`;
+
+          const container = document.getElementById('previewDestinatariosContainer');
+          container.innerHTML = selectedOrgaosList.map(org => `
+            <div style="margin-bottom: 0.8rem;">
+              <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
+              <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+            </div>
+          `).join('');
+
+          document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value;
+          document.getElementById('previewTexto').innerHTML = getTextoHTML();
+          document.getElementById('previewAssinaturas').innerHTML =
+            obterAssinaturasSelecionadas()
+              .map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`)
+              .join('');
+          document.getElementById('previewSection').classList.add('show');
+          document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        function editarOficio() { document.getElementById('previewSection').classList.remove('show'); }
+
+        async function imprimirOficio() {
+          if (!validarFormulario()) return;
+          applyHeaderSource();
+          const headerImgEl = document.getElementById("headerImg");
+          await waitImg(headerImgEl);
+          const headerDataUrl = imgToDataURL(headerImgEl) || headerImgEl.src;
+          if (!headerDataUrl) { mostrarMensagem("Erro na imagem do cabeçalho", "error"); return; }
+
+          const root = buildPrintRoot();
+          root.id = "__native_print_root__";
+          root.className = "print-visible-root";
+
+          try {
+            const pages = paginateIntoPagesFixed(root, headerDataUrl);
+            const style = document.createElement('style');
+            style.id = "print-override-style";
+            style.textContent = `
+          @media print {
+            body > *:not(#__native_print_root__) { display: none !important; }
+            #__native_print_root__ { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; z-index: 9999 !important; opacity: 1 !important; }
+            .__print_page__ { break-after: page; margin-bottom: 0; box-shadow: none !important; border: none !important; }
+          }
+        `;
+            document.head.appendChild(style);
+            window.print();
+            setTimeout(() => { removePrintRoot(root); style.remove(); }, 1000);
+          } catch (e) {
+            console.error(e);
+            mostrarMensagem('Erro ao imprimir.', 'error');
+            removePrintRoot(root);
+          }
+        }
+
+        async function gerarOficio() {
+          if (!validarFormulario()) return;
+          const { addDoc, collection } = window.firestore;
+          const db = window.db;
+
+          const destinatarioStr = selectedOrgaosList.map(o => o.nome).join('; ');
+
+          const novo = {
+            id: Date.now(),
+            numero: document.getElementById('numeroOficio').value,
+            data: new Date().toLocaleDateString('pt-BR'),
+            dataCompleta: document.getElementById('dataOficio').value,
+            destinatario: destinatarioStr,
+            destinatarios: selectedOrgaosList, // Save as array too
+            assunto: document.getElementById('assuntoOficio').value,
+            texto: getTextoHTML(),
+            assinaturas: obterAssinaturasSelecionadas(),
+            protocolo: ""
+          };
+          try {
+            await addDoc(collection(db, "oficios"), novo);
+            mostrarMensagem('Ofício salvo na nuvem!', 'success');
+            // Auto-print after save
+            await imprimirOficio();
+            limparFormulario();
+          } catch (e) {
+            console.error(e);
+            alert("Erro ao salvar ofício: " + e.message);
+          }
+        }
+
+        /* ===== HELPERS & PRINTING (CONSOLIDATED) ===== */
+
+        async function waitImg(img) {
+          if (!img) return;
+          if (img.complete && img.naturalWidth > 0) return;
+          await new Promise((res) => {
+            img.onload = () => res();
+            img.onerror = () => res();
           });
-          if (i > 0) pdf.addPage();
-          pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
         }
-        
-        const numero = document.getElementById('numeroOficio').value.replace(/\//g, '_');
-        pdf.save(`Oficio_${numero}.pdf`);
-        showToast('PDF gerado!', 'success');
-      } catch (e) { 
-        console.error(e); 
-        showToast('Erro ao gerar PDF', 'error'); 
-      }
-      finally { showLoading(false); }
-    }
 
-    async function gerarPDFHistorico(i) {
-      const o = historico[i];
-      document.getElementById('numeroOficio').value = o.numero;
-      document.getElementById('assuntoOficio').value = o.assunto;
-      document.getElementById('editorContent').innerHTML = o.texto;
-      if (o.vocativo) document.getElementById('vocativoOficio').value = o.vocativo;
-      if (o.fecho) document.getElementById('fechoOficio').value = o.fecho;
-      selectedOrgaosList = o.destinatarios?.length ? [...o.destinatarios] : [{ nome: o.destinatario, endereco: '' }];
-      document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
-      (o.assinaturas || []).forEach(sig => { const cb = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`); if (cb) cb.checked = true; });
-      if (o.dataCompleta) {
-        const p = o.dataCompleta.match(/(\d+) de (\w+) de (\d{4})/);
-        if (p) {
-          const m = { janeiro: '01', fevereiro: '02', março: '03', abril: '04', maio: '05', junho: '06', julho: '07', agosto: '08', setembro: '09', outubro: '10', novembro: '11', dezembro: '12' };
-          document.getElementById('dataOficioInput').value = `${p[3]}-${m[p[2].toLowerCase()]}-${p[1].padStart(2, '0')}`;
+        function imgToDataURL(imgEl) {
+          if (!imgEl) return null;
+          try {
+            const c = document.createElement("canvas");
+            c.width = imgEl.naturalWidth || imgEl.width || 1000;
+            c.height = imgEl.naturalHeight || imgEl.height || 300;
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(imgEl, 0, 0, c.width, c.height);
+            return c.toDataURL("image/jpeg", 0.95);
+          } catch (e) {
+            console.warn("imgToDataURL failed:", e);
+            return null;
+          }
         }
-      }
-      visualizarPrevia();
-      await new Promise(r => setTimeout(r, 300));
-      await gerarPDF();
-    }
 
-    function imprimirOficio() { window.print(); }
+        /* PDF / PRINT LOGIC */
+        function mmToPx(mm) { return Math.round((mm * 96) / 25.4); }
 
-    // ==================== UTILITÁRIOS ====================
-    function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
-    function showToast(msg, type = 'success') {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.className = `toast ${type} show`;
-      setTimeout(() => toast.classList.remove('show'), 3500);
-    }
-    function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('show', show); }
-    document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); }));
-  </script>
+        function cloneOficioBodyForPrint() {
+          const body = document.querySelector("#previewCard .oficio-body");
+          if (!body) return null;
+          const cloned = body.cloneNode(true);
+          cloned.style.margin = "0"; cloned.style.padding = "0"; cloned.style.boxSizing = "border-box";
+          cloned.style.fontFamily = "Arial, sans-serif"; cloned.style.fontSize = "12pt";
+          cloned.style.lineHeight = "1.5"; cloned.style.color = "#000"; cloned.style.textAlign = "justify";
+          return cloned;
+        }
+
+        function extractBlocksForPagination(oficioBodyClone) {
+          if (!oficioBodyClone) return [];
+          const blocks = [];
+          const meta = oficioBodyClone.querySelector(".oficio-meta-info");
+          const content = oficioBodyClone.querySelector(".oficio-content");
+          const assin = oficioBodyClone.querySelector(".oficio-assinatura");
+
+          if (meta) blocks.push(meta.cloneNode(true));
+          if (content) {
+            const contentClone = content.cloneNode(true);
+            const children = Array.from(contentClone.childNodes).filter(n => !(n.nodeType === 3 && !n.textContent.trim()));
+            for (const node of children) {
+              if (node.nodeType !== 1) continue;
+              if (node.tagName === "P") { blocks.push(node.cloneNode(true)); continue; }
+              if (node.tagName === "DIV") {
+                const innerEls = Array.from(node.children);
+                for (const el of innerEls) {
+                  const tag = (el.tagName || "").toUpperCase();
+                  if (tag === "UL" || tag === "OL") {
+                    const lis = Array.from(el.querySelectorAll(":scope > li"));
+                    if (lis.length) {
+                      for (const li of lis) {
+                        const list = document.createElement(tag === "UL" ? "ul" : "ol");
+                        const liClone = li.cloneNode(true);
+                        list.appendChild(liClone);
+                        blocks.push(list);
+                      }
+                    } else blocks.push(el.cloneNode(true));
+                    continue;
+                  }
+                  blocks.push(el.cloneNode(true));
+                }
+                if (!innerEls.length) blocks.push(node.cloneNode(true));
+                continue;
+              }
+              blocks.push(node.cloneNode(true));
+            }
+          }
+          if (assin) {
+            const a = assin.cloneNode(true);
+            a.dataset.keepWithPrevious = "1";
+            blocks.push(a);
+          }
+          return blocks;
+        }
+
+        function buildBlocksForPdf() { return extractBlocksForPagination(cloneOficioBodyForPrint()); }
+
+        function buildPrintRoot() {
+          const root = document.createElement("div");
+          root.id = "__print_root__";
+          root.style.position = "fixed"; root.style.left = "0"; root.style.top = "0";
+          root.style.width = "210mm"; root.style.height = "auto";
+          root.style.opacity = "0"; root.style.pointerEvents = "none"; root.style.zIndex = "-1";
+          root.style.background = "#fff"; root.style.boxSizing = "border-box";
+          document.body.appendChild(root);
+          return root;
+        }
+
+        function removePrintRoot(root) { try { root && root.remove(); } catch (_) { } }
+
+        function createPageElement(headerSrc, pageWpx, pageHpx, headerHpx, footerHpx, contentBoxStyles) {
+          const page = document.createElement("div");
+          page.className = "__print_page__";
+          page.style.width = pageWpx + "px"; page.style.height = pageHpx + "px";
+          page.style.background = "#fff"; page.style.overflow = "hidden";
+          page.style.position = "relative"; page.style.boxSizing = "border-box";
+
+          const header = document.createElement("div");
+          header.style.height = headerHpx + "px"; header.style.width = "100%";
+          header.style.display = "flex"; header.style.alignItems = "flex-start"; header.style.justifyContent = "center";
+          header.style.boxSizing = "border-box"; header.style.padding = "0"; header.style.overflow = "hidden";
+
+          if (headerSrc) {
+            const img = document.createElement("img");
+            // Only use anonymous if it's not the specific known non-CORS URL
+            if (headerSrc.startsWith("http") && !headerSrc.includes("advantagemidia.com")) {
+              img.crossOrigin = "anonymous";
+            }
+            img.src = headerSrc;
+            img.style.width = "82%";
+            img.style.height = "auto";
+            img.style.maxHeight = "100%";
+            img.style.objectFit = "contain"; img.style.display = "block";
+            header.appendChild(img);
+          }
+
+          const content = document.createElement("div");
+          content.style.position = "absolute";
+          content.style.left = contentBoxStyles.left; content.style.top = contentBoxStyles.top;
+          content.style.right = contentBoxStyles.right; content.style.bottom = contentBoxStyles.bottom;
+          content.style.boxSizing = "border-box"; content.style.overflow = "hidden";
+
+          const footer = document.createElement("div");
+          footer.style.position = "absolute"; footer.style.left = "0"; footer.style.bottom = "0";
+          footer.style.width = "100%"; footer.style.height = footerHpx + "px";
+          footer.style.boxSizing = "border-box"; footer.style.borderTop = "1px solid #000";
+          footer.style.padding = "10px 30px"; footer.style.fontFamily = "Arial, sans-serif";
+          footer.style.fontSize = "9pt"; footer.style.color = "#000"; footer.style.lineHeight = "1.3";
+          footer.innerHTML = `<div style="font-weight:700; text-transform:uppercase">Prefeitura Municipal de Rondonópolis – MT</div><div style="margin-top:2px;">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>`;
+
+          page.appendChild(header); page.appendChild(content); page.appendChild(footer);
+          return { page, content };
+        }
+
+        function popLastN(stackEl, n) {
+          const moved = [];
+          for (let i = 0; i < n; i++) {
+            const last = stackEl.lastElementChild;
+            if (!last) break;
+            stackEl.removeChild(last);
+            moved.unshift(last);
+          }
+          return moved;
+        }
+
+        function prependNodes(stackEl, nodes) {
+          for (let i = nodes.length - 1; i >= 0; i--) stackEl.insertBefore(nodes[i], stackEl.firstChild);
+        }
+
+        function paginateIntoPagesFixed(root, headerSrc) {
+          const pageWpx = mmToPx(210); const pageHpx = mmToPx(297);
+          const headerHpx = mmToPx(32); const footerHpx = mmToPx(15);
+          const marginLeft = mmToPx(25); const marginRight = mmToPx(15);
+          const contentTop = headerHpx + mmToPx(2); const contentBottom = footerHpx + mmToPx(2);
+          const contentBoxStyles = { left: marginLeft + "px", right: marginRight + "px", top: contentTop + "px", bottom: contentBottom + "px" };
+
+          const blocks = buildBlocksForPdf();
+          const pages = [];
+
+          function newPage() {
+            const pg = createPageElement(headerSrc, pageWpx, pageHpx, headerHpx, footerHpx, contentBoxStyles);
+            root.appendChild(pg.page);
+            const stack = document.createElement("div");
+            stack.className = "oficio-content"; stack.style.width = "100%";
+            stack.style.boxSizing = "border-box"; stack.style.margin = "0";
+            pg.content.appendChild(stack);
+            return { page: pg.page, content: pg.content, stack };
+          }
+
+          let current = newPage();
+          for (let i = 0; i < blocks.length; i++) {
+            const candidate = blocks[i].cloneNode(true);
+            current.stack.appendChild(candidate);
+            if (current.stack.scrollHeight > current.content.clientHeight) {
+              current.stack.removeChild(candidate);
+              const next = newPage();
+              if (candidate.dataset && candidate.dataset.keepWithPrevious === "1") {
+                const moved = popLastN(current.stack, 2);
+                prependNodes(next.stack, moved);
+              }
+              next.stack.appendChild(candidate);
+              pages.push(current.page);
+              current = next;
+            }
+          }
+          pages.push(current.page);
+          return pages;
+        }
+
+        async function renderPageToCanvas(pageEl) {
+          return await html2canvas(pageEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+        }
+
+        async function gerarPDF(oficio = null) {
+          if (oficio) {
+            document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
+            document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
+
+            const container = document.getElementById('previewDestinatariosContainer');
+            if (oficio.destinatarios && Array.from(oficio.destinatarios).length > 0) {
+              container.innerHTML = oficio.destinatarios.map(org => `
+                <div style="margin-bottom: 0.8rem;">
+                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+                </div>
+              `).join('');
+            } else {
+              // Backward compatibility
+              const org = orgaos.find(o => o.nome === oficio.destinatario);
+              container.innerHTML = `
+                <div style="margin-bottom: 0.8rem;">
+                  <div class="oficio-para"><span class="label">Para:</span> <span>${oficio.destinatario}</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org ? org.endereco : ''}</span></div>
+                </div>
+              `;
+            }
+
+            document.getElementById('previewAssunto').textContent = oficio.assunto;
+            document.getElementById('previewTexto').innerHTML = oficio.texto;
+            document.getElementById('previewAssinaturas').innerHTML = (oficio.assinaturas || []).map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
+            document.getElementById('previewSection').classList.add('show');
+          } else {
+            visualizarPrevia();
+          }
+          applyHeaderSource();
+          const headerImgEl = document.getElementById("headerImg");
+          await waitImg(headerImgEl);
+          const headerDataUrl = imgToDataURL(headerImgEl) || headerImgEl.src;
+          const root = buildPrintRoot();
+          try {
+            const pages = paginateIntoPagesFixed(root, headerDataUrl);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF("p", "mm", "a4");
+            const pageWmm = 210; const pageHmm = 297;
+            for (let i = 0; i < pages.length; i++) {
+              const canvas = await renderPageToCanvas(pages[i]);
+              const imgData = canvas.toDataURL("image/jpeg", 0.92);
+              if (i > 0) pdf.addPage();
+              pdf.addImage(imgData, "JPEG", 0, 0, pageWmm, pageHmm);
+            }
+            const nome = (oficio?.numero || document.getElementById('numeroOficio').value).replaceAll('/', '_');
+            pdf.save(`Oficio_${nome}.pdf`);
+            mostrarMensagem('📄 PDF baixado!', 'success');
+          } catch (e) {
+            console.error(e); mostrarMensagem('Erro ao gerar PDF.', 'error');
+          } finally {
+            removePrintRoot(root);
+          }
+        }
+
+        /* ===== CRUD - ORGAOS ===== */
+        window.salvarOrgao = async function () {
+          const idx = parseInt(document.getElementById('editOrgaoIndex').value);
+          const codigo = document.getElementById('editCodigoOrgao').value.trim();
+          const nome = document.getElementById('editNomeOrgao').value.trim();
+          const endereco = document.getElementById('editEnderecoOrgao').value.trim();
+          if (!codigo || !nome) { alert("Preencha Código e Nome"); return; }
+
+          const novo = { codigo, nome, endereco };
+          if (idx >= 0) orgaos[idx] = novo; else orgaos.push(novo);
+          await salvarSettings('orgaos');
+          atualizarTabelaOrgaos(); carregarOrgaos(); fecharModalOrgao();
+          mostrarMensagem("Órgão salvo!", "success");
+        }
+        window.excluirOrgao = async function (i) {
+          if (confirm('Excluir órgão?')) {
+            orgaos.splice(i, 1);
+            await salvarSettings('orgaos');
+            atualizarTabelaOrgaos(); carregarOrgaos();
+            mostrarMensagem("Órgão excluído.", "success");
+          }
+        }
+        window.adicionarOrgao = function () {
+          document.getElementById('editOrgaoIndex').value = "-1";
+          document.getElementById('editCodigoOrgao').value = "";
+          document.getElementById('editNomeOrgao').value = "";
+          document.getElementById('editEnderecoOrgao').value = "";
+          document.getElementById('orgaoModalTitle').textContent = "🏢 Adicionar Órgão";
+          document.getElementById('orgaoModal').style.display = 'block';
+        }
+        window.editarOrgao = function (index) {
+          const o = orgaos[index];
+          document.getElementById('editOrgaoIndex').value = index;
+          document.getElementById('editCodigoOrgao').value = o.codigo;
+          document.getElementById('editNomeOrgao').value = o.nome;
+          document.getElementById('editEnderecoOrgao').value = o.endereco;
+          document.getElementById('orgaoModalTitle').textContent = "🏢 Editar Órgão";
+          document.getElementById('orgaoModal').style.display = 'block';
+        }
+        window.fecharModalOrgao = function () { document.getElementById('orgaoModal').style.display = 'none'; }
+        window.atualizarTabelaOrgaos = function () {
+          const tbody = document.getElementById('orgaosBody');
+          if (!tbody) return;
+          tbody.innerHTML = orgaos.map((o, i) => `<tr><td>${o.codigo}</td><td>${o.nome}</td><td>${o.endereco}</td><td style="text-align:center;"><button class="btn-editor" style="background:#f59e0b; margin-right:5px;" onclick="editarOrgao(${i})">✏️</button><button class="btn-editor" style="background:#dc2626;" onclick="excluirOrgao(${i})">🗑️</button></td></tr>`).join('');
+        }
+
+        /* ===== CRUD - ASSINATURAS ===== */
+        window.salvarAssinatura = async function () {
+          const idParam = document.getElementById('editAssinaturaId').value;
+          const nome = document.getElementById('editNomeAssinatura').value.trim();
+          const cargo = document.getElementById('editCargoAssinatura').value.trim();
+          const ordem = parseInt(document.getElementById('editOrdemAssinatura').value) || 99;
+          if (!nome || !cargo) { alert("Preencha Nome e Cargo"); return; }
+
+          const novo = { id: idParam ? parseInt(idParam) : Date.now(), nome, cargo, ordem };
+          if (idParam) {
+            const id = parseInt(idParam);
+            const idx = assinaturas.findIndex(x => x.id === id);
+            if (idx >= 0) assinaturas[idx] = novo;
+          } else assinaturas.push(novo);
+
+          await salvarSettings('assinaturas');
+          atualizarTabelaAssinaturas(); carregarAssinaturasSelecao(); fecharModalAssinatura();
+          mostrarMensagem("Assinatura salva!", "success");
+        }
+        window.excluirAssinatura = async function (id) {
+          if (confirm('Excluir assinatura?')) {
+            assinaturas = assinaturas.filter(x => x.id !== id);
+            await salvarSettings('assinaturas');
+            atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
+          }
+        }
+        window.adicionarAssinatura = function () {
+          document.getElementById('editAssinaturaId').value = "";
+          document.getElementById('editNomeAssinatura').value = "";
+          document.getElementById('editCargoAssinatura').value = "";
+          document.getElementById('editOrdemAssinatura').value = "";
+          document.getElementById('assinaturaModalTitle').textContent = "✍️ Adicionar Assinatura";
+          document.getElementById('assinaturaModal').style.display = 'block';
+        }
+        window.editarAssinatura = function (id) {
+          const a = assinaturas.find(x => x.id === id);
+          if (!a) return;
+          document.getElementById('editAssinaturaId').value = a.id;
+          document.getElementById('editNomeAssinatura').value = a.nome;
+          document.getElementById('editCargoAssinatura').value = a.cargo;
+          document.getElementById('editOrdemAssinatura').value = a.ordem;
+          document.getElementById('assinaturaModalTitle').textContent = "✍️ Editar Assinatura";
+          document.getElementById('assinaturaModal').style.display = 'block';
+        }
+        window.fecharModalAssinatura = function () { document.getElementById('assinaturaModal').style.display = 'none'; }
+        window.atualizarTabelaAssinaturas = function () {
+          const tbody = document.getElementById('assinaturasBody');
+          if (!tbody) return;
+          tbody.innerHTML = assinaturas.sort((a, b) => a.ordem - b.ordem).map(a => `<tr><td>${a.nome}</td><td>${a.cargo}</td><td>${a.ordem}</td><td style="text-align:center;"><button class="btn-editor" style="background:#f59e0b; margin-right:5px;" onclick="editarAssinatura(${a.id})">✏️</button><button class="btn-editor" style="background:#dc2626;" onclick="excluirAssinatura(${a.id})">🗑️</button></td></tr>`).join('');
+        }
+
+        /* ===== HISTORICO ACTIONS ===== */
+        window.excluirHistorico = async function (i) {
+          if (confirm('Excluir permanentemente?')) {
+            const h = historico[i];
+            if (!h || !h._docId) return;
+            const { deleteDoc, doc } = window.firestore;
+            const db = window.db;
+            await deleteDoc(doc(db, "oficios", h._docId));
+            mostrarMensagem("Excluído.", "success");
+          }
+        }
+        window.atualizarTabelaHistorico = function () {
+          const b = document.getElementById('historicoBody');
+          if (!b) return;
+          if (!historico.length) { b.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem">📭 Vazio</td></tr>'; return; }
+          b.innerHTML = historico.map((o, i) => {
+            const protoHtml = o.protocolo
+              ? `<span style="font-weight:600;color:var(--primary);cursor:pointer;" onclick="lancarProtocolo(${i})" title="Editar Protocolo">${o.protocolo}</span>`
+              : `<button class="btn btn-sm btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="lancarProtocolo(${i})">Lançar</button>`;
+            return `<tr><td>${o.numero}</td><td>${o.data}</td><td>${protoHtml}</td><td>${o.destinatario}</td><td>${o.assunto}</td><td><div style="display:flex;gap:0.5rem;justify-content:center;"><button class="btn btn-sm btn-success" onclick="gerarPDF(historico[${i}])" title="Baixar PDF">📄</button><button class="btn btn-sm btn-primary" onclick="editarHistorico(${i})" title="Carregar">✏️</button><button class="btn btn-sm btn-warning" onclick="excluirHistorico(${i})">🗑️</button></div></td></tr>`;
+          }).join('');
+        }
+        window.lancarProtocolo = async function (i) {
+          const h = historico[i];
+          if (!h || !h._docId) return;
+          const atual = h.protocolo || "";
+          const novo = prompt("Protocolo:", atual);
+          if (novo !== null) {
+            const { updateDoc, doc } = window.firestore;
+            const db = window.db;
+            await updateDoc(doc(db, "oficios", h._docId), { protocolo: novo.trim() });
+            mostrarMensagem("Protocolo atualizado.", "success");
+          }
+        }
+        window.editarHistorico = function (i) {
+          if (!confirm('Carregar dados deste ofício para edição?')) return;
+          const h = historico[i];
+          document.getElementById('numeroOficio').value = h.numero;
+          if (h.dataCompleta) document.getElementById('dataOficio').value = h.dataCompleta;
+          document.getElementById('assuntoOficio').value = h.assunto;
+          tinymce.get('textoOficio').setContent(h.texto);
+
+          // Handle multiple organs in history
+          selectedOrgaosList = [];
+          if (h.destinatarios && h.destinatarios.length > 0) {
+            selectedOrgaosList = [...h.destinatarios];
+          } else if (h.destinatario) {
+            // Backward compatibility
+            const orgObj = orgaos.find(o => o.nome === h.destinatario);
+            if (orgObj) selectedOrgaosList = [orgObj];
+          }
+          renderSelectedOrgaos();
+          document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
+          if (h.assinaturas) {
+            h.assinaturas.forEach(sig => {
+              let cb = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`);
+              if (cb) cb.checked = true;
+            });
+          }
+          showTab('gerador');
+          mostrarMensagem("Dados carregados.", "success");
+        }
+        window.filtrarHistorico = function () { atualizarTabelaHistorico(); }
+
+        /* UI Helpers */
+        function mostrarMensagem(m, t) {
+          const el = document.getElementById('statusMessage');
+          if (el) {
+            el.className = `status-message status-${t} show`;
+            el.textContent = m;
+            setTimeout(() => el.classList.remove('show'), 4000);
+          } else alert(m);
+        }
+        window.onclick = e => { if (e.target.className === 'modal') e.target.style.display = 'none'; };
+
+      </script>
 </body>
+
 </html>
