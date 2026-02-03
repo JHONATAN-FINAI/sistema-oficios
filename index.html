@@ -1102,10 +1102,7 @@
     }
 
     .sidebar-assinatura-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0;
+      padding: 0.5rem;
       font-size: 0.85rem;
       border-bottom: 1px solid var(--border-light);
     }
@@ -1114,7 +1111,13 @@
       border-bottom: none;
     }
 
-    .sidebar-assinatura-item input[type="checkbox"] {
+    .sidebar-ass-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sidebar-ass-header input[type="checkbox"] {
       accent-color: var(--primary);
       flex-shrink: 0;
     }
@@ -1124,22 +1127,46 @@
       min-width: 0;
     }
 
-    .sidebar-assinatura-pagina {
-      flex-shrink: 0;
+    .sidebar-ass-pages {
       display: flex;
       align-items: center;
-      gap: 0.3rem;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
+      gap: 0.25rem;
+      margin-top: 0.35rem;
+      padding-left: 1.5rem;
+      flex-wrap: wrap;
     }
 
-    .sidebar-assinatura-pagina select {
-      width: 58px;
-      font-size: 0.75rem;
-      padding: 0.15rem 0.2rem;
+    .sidebar-ass-pages span.pages-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-right: 0.15rem;
+    }
+
+    .page-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 22px;
+      font-size: 0.7rem;
       border: 1px solid var(--border);
       border-radius: 3px;
       background: #fff;
+      cursor: pointer;
+      color: var(--text-secondary);
+      user-select: none;
+      transition: all 0.15s;
+    }
+
+    .page-toggle.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .page-toggle:hover {
+      border-color: var(--primary);
     }
 
     .btn-sidebar-toggle {
@@ -2342,12 +2369,13 @@
             return;
           }
 
-          // Agrupar por página
+          // Agrupar por página (cada assinatura pode estar em múltiplas)
           const grupos = {};
           selecionadas.forEach(a => {
-            const pg = a.pagina || 'last';
-            if (!grupos[pg]) grupos[pg] = [];
-            grupos[pg].push(a);
+            (a.paginas || ['last']).forEach(pg => {
+              if (!grupos[pg]) grupos[pg] = [];
+              grupos[pg].push(a);
+            });
           });
 
           let html = '';
@@ -2371,27 +2399,34 @@
         // Deprecated single organ filler
         function preencherOrgao() { }
         function carregarAssinaturasSelecao() {
+          const maxPages = 5;
           document.getElementById('assinaturasContainer').innerHTML =
             assinaturas.sort((a, b) => a.ordem - b.ordem)
-              .map(a => `<div class="sidebar-assinatura-item">
-                <input type="checkbox" value="${a.id}" checked onchange="atualizarAssinaturasNaFolha()">
-                <div class="sidebar-assinatura-info">
-                  <div style="font-weight:600;">${a.nome}</div>
-                  <div style="color:var(--text-secondary);font-size:0.8rem;">${a.cargo}</div>
-                </div>
-                <div class="sidebar-assinatura-pagina">
-                  <span>Pág.</span>
-                  <select data-ass-id="${a.id}" onchange="atualizarAssinaturasNaFolha()">
-                    <option value="last" selected>Última</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                  </select>
-                </div>
-              </div>`)
-              .join('');
+              .map(a => {
+                let pageToggles = '';
+                for (let p = 1; p <= maxPages; p++) {
+                  pageToggles += `<div class="page-toggle" data-ass="${a.id}" data-page="${p}" onclick="toggleAssPage(this)">${p}</div>`;
+                }
+                pageToggles += `<div class="page-toggle active" data-ass="${a.id}" data-page="last" onclick="toggleAssPage(this)">U</div>`;
+                return `<div class="sidebar-assinatura-item" data-ass-id="${a.id}">
+                  <div class="sidebar-ass-header">
+                    <input type="checkbox" value="${a.id}" checked onchange="atualizarAssinaturasNaFolha()">
+                    <div class="sidebar-assinatura-info">
+                      <div style="font-weight:600;">${a.nome}</div>
+                      <div style="color:var(--text-secondary);font-size:0.8rem;">${a.cargo}</div>
+                    </div>
+                  </div>
+                  <div class="sidebar-ass-pages">
+                    <span class="pages-label">Págs:</span>
+                    ${pageToggles}
+                  </div>
+                </div>`;
+              }).join('');
+          atualizarAssinaturasNaFolha();
+        }
+
+        window.toggleAssPage = function(el) {
+          el.classList.toggle('active');
           atualizarAssinaturasNaFolha();
         }
         function obterAssinaturasSelecionadas() {
@@ -2403,9 +2438,10 @@
             const id = parseInt(cb.value);
             const a = assinaturas.find(x => x.id === id);
             if (!a) return;
-            const sel = item.querySelector('select[data-ass-id]');
-            const pagina = sel ? sel.value : 'last';
-            result.push({ ...a, pagina });
+            const activeToggles = [...item.querySelectorAll('.page-toggle.active')];
+            const paginas = activeToggles.map(t => t.dataset.page);
+            if (paginas.length === 0) paginas.push('last');
+            result.push({ ...a, paginas });
           });
           return result.sort((a, b) => a.ordem - b.ordem);
         }
@@ -2704,9 +2740,11 @@
           const assSelecionadas = _assinaturasPdfOverride || obterAssinaturasSelecionadas();
           const assPorPagina = {}; // { "1": [...], "2": [...], "last": [...] }
           assSelecionadas.forEach(a => {
-            const pg = a.pagina || 'last';
-            if (!assPorPagina[pg]) assPorPagina[pg] = [];
-            assPorPagina[pg].push(a);
+            const pags = a.paginas || (a.pagina ? [a.pagina] : ['last']);
+            pags.forEach(pg => {
+              if (!assPorPagina[pg]) assPorPagina[pg] = [];
+              assPorPagina[pg].push(a);
+            });
           });
 
           const pagesData = []; // array de { page, content, stack }
@@ -2786,7 +2824,7 @@
             // Configurar override de assinaturas para paginação
             _assinaturasPdfOverride = (oficio.assinaturas || []).map(a => ({
               ...a,
-              pagina: a.pagina || 'last'
+              paginas: a.paginas || (a.pagina ? [a.pagina] : ['last'])
             }));
 
             document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
@@ -3000,16 +3038,21 @@
           }
           renderSelectedOrgaos();
           document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
+          // Resetar todos os toggles de página
+          document.querySelectorAll('#assinaturasContainer .page-toggle').forEach(t => t.classList.remove('active'));
           if (h.assinaturas) {
             h.assinaturas.forEach(sig => {
               const item = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`);
               if (item) {
                 item.checked = true;
-                // Restaurar página da assinatura
                 const container = item.closest('.sidebar-assinatura-item');
                 if (container) {
-                  const sel = container.querySelector('select[data-ass-id]');
-                  if (sel && sig.pagina) sel.value = sig.pagina;
+                  // Restaurar páginas (compatível com paginas array ou pagina singular)
+                  const pags = sig.paginas || (sig.pagina ? [sig.pagina] : ['last']);
+                  pags.forEach(pg => {
+                    const toggle = container.querySelector(`.page-toggle[data-page="${pg}"]`);
+                    if (toggle) toggle.classList.add('active');
+                  });
                 }
               }
             });
