@@ -100,8 +100,8 @@
 
   <style>
     :root {
-      --primary: #6366f1;
-      --primary-dark: #4338ca;
+      --primary: #0470ee;
+      --primary-dark: #0355b8;
       --border: #e2e8f0;
       --border-light: #f1f5f9;
       --bg-card: #fff;
@@ -219,8 +219,22 @@
     .sidebar-nav .tab-icon {
       font-size: 1.15rem;
       width: 24px;
+      height: 20px;
       text-align: center;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar-nav .tab-icon svg {
+      opacity: .75;
+      transition: opacity .25s ease;
+    }
+
+    .sidebar-nav .tab.active .tab-icon svg,
+    .sidebar-nav .tab:hover .tab-icon svg {
+      opacity: 1;
     }
 
     .sidebar-user {
@@ -1635,16 +1649,16 @@
 
           <nav class="sidebar-nav">
             <button class="tab active" onclick="showTab('gerador', this)">
-              <span class="tab-icon">📝</span> Gerar Ofício
+              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span> Gerar Ofício
             </button>
             <button class="tab" onclick="showTab('historico', this)">
-              <span class="tab-icon">📋</span> Histórico
+              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Histórico
             </button>
             <button class="tab" onclick="showTab('orgaos', this)">
-              <span class="tab-icon">🏢</span> Órgãos
+              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg></span> Órgãos
             </button>
             <button class="tab" onclick="showTab('assinaturas', this)">
-              <span class="tab-icon">✍️</span> Assinaturas
+              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19.5c0 .5-.5 1-1 1s-1.5-.2-2-.8c-.5-.6-1.2-1.6-2-2.2-1-.7-2-1-3-1-2 0-3.5 1.5-5 3"/><path d="M2 17a5 5 0 0 1 7-4.5"/><path d="M15.5 5.5L18 3l3 3-2.5 2.5"/><path d="M18 3l-6.5 6.5"/></svg></span> Assinaturas
             </button>
           </nav>
 
@@ -1891,7 +1905,7 @@
     <div id="orgaoModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title" id="orgaoModalTitle">🏢 Órgão</h3>
+          <h3 class="modal-title" id="orgaoModalTitle">Órgão</h3>
           <span class="close" onclick="fecharModalOrgao()">&times;</span>
         </div>
         <input type="hidden" id="editOrgaoIndex">
@@ -1916,7 +1930,7 @@
     <div id="assinaturaModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title" id="assinaturaModalTitle">✍️ Assinatura</h3>
+          <h3 class="modal-title" id="assinaturaModalTitle">Assinatura</h3>
           <span class="close" onclick="fecharModalAssinatura()">&times;</span>
         </div>
         <input type="hidden" id="editAssinaturaId">
@@ -2088,7 +2102,7 @@
         function resetHeaderToUrl() {
           safeStorage.set(STORAGE_HEADER, "");
           applyHeaderSource();
-          mostrarMensagem("🌐 Usando imagem padrão.", "warning");
+          mostrarMensagem("Usando imagem padrão.", "warning");
         }
 
         function applyHeaderSource() {
@@ -2696,7 +2710,7 @@
           document.getElementById('editCodigoOrgao').value = "";
           document.getElementById('editNomeOrgao').value = "";
           document.getElementById('editEnderecoOrgao').value = "";
-          document.getElementById('orgaoModalTitle').textContent = "🏢 Adicionar Órgão";
+          document.getElementById('orgaoModalTitle').textContent = "Adicionar Órgão";
           document.getElementById('orgaoModal').style.display = 'block';
         }
         window.editarOrgao = function (index) {
@@ -2705,7 +2719,7 @@
           document.getElementById('editCodigoOrgao').value = o.codigo;
           document.getElementById('editNomeOrgao').value = o.nome;
           document.getElementById('editEnderecoOrgao').value = o.endereco;
-          document.getElementById('orgaoModalTitle').textContent = "🏢 Editar Órgão";
+          document.getElementById('orgaoModalTitle').textContent = "Editar Órgão";
           document.getElementById('orgaoModal').style.display = 'block';
         }
         window.fecharModalOrgao = function () { document.getElementById('orgaoModal').style.display = 'none'; }
@@ -2746,7 +2760,7 @@
           document.getElementById('editNomeAssinatura').value = "";
           document.getElementById('editCargoAssinatura').value = "";
           document.getElementById('editOrdemAssinatura').value = "";
-          document.getElementById('assinaturaModalTitle').textContent = "✍️ Adicionar Assinatura";
+          document.getElementById('assinaturaModalTitle').textContent = "Adicionar Assinatura";
           document.getElementById('assinaturaModal').style.display = 'block';
         }
         window.editarAssinatura = function (id) {
@@ -2756,7 +2770,7 @@
           document.getElementById('editNomeAssinatura').value = a.nome;
           document.getElementById('editCargoAssinatura').value = a.cargo;
           document.getElementById('editOrdemAssinatura').value = a.ordem;
-          document.getElementById('assinaturaModalTitle').textContent = "✍️ Editar Assinatura";
+          document.getElementById('assinaturaModalTitle').textContent = "Editar Assinatura";
           document.getElementById('assinaturaModal').style.display = 'block';
         }
         window.fecharModalAssinatura = function () { document.getElementById('assinaturaModal').style.display = 'none'; }
