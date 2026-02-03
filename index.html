@@ -1105,12 +1105,41 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.4rem 0;
+      padding: 0.5rem 0;
       font-size: 0.85rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .sidebar-assinatura-item:last-child {
+      border-bottom: none;
     }
 
     .sidebar-assinatura-item input[type="checkbox"] {
       accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .sidebar-assinatura-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sidebar-assinatura-pagina {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .sidebar-assinatura-pagina select {
+      width: 58px;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.2rem;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: #fff;
     }
 
     .btn-sidebar-toggle {
@@ -1974,6 +2003,7 @@
         let historico = [];
         let orgaos = [];
         let assinaturas = [];
+        let _assinaturasPdfOverride = null; // Temporário para PDF do histórico
         let selectedOrgaosList = [];
 
         // --- INITIALIZATION ---
@@ -2308,16 +2338,34 @@
           if (!container) return;
 
           if (selecionadas.length === 0) {
-            container.innerHTML = '<div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral →</div>';
+            container.innerHTML = '<div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral</div>';
             return;
           }
 
-          container.innerHTML = selecionadas.map(a => `
-            <div class="assinatura-bloco">
-              <div class="assinatura-nome-preview">${a.nome}</div>
-              <div class="assinatura-cargo-preview">${a.cargo}</div>
-            </div>
-          `).join('');
+          // Agrupar por página
+          const grupos = {};
+          selecionadas.forEach(a => {
+            const pg = a.pagina || 'last';
+            if (!grupos[pg]) grupos[pg] = [];
+            grupos[pg].push(a);
+          });
+
+          let html = '';
+          const keys = Object.keys(grupos).sort((a, b) => {
+            if (a === 'last') return 1;
+            if (b === 'last') return -1;
+            return parseInt(a) - parseInt(b);
+          });
+
+          keys.forEach(pg => {
+            const label = pg === 'last' ? 'Última página' : `Página ${pg}`;
+            html += `<div style="color:var(--text-secondary);font-size:9pt;margin:0.5rem 0 0.3rem 0;text-align:left;border-bottom:1px dashed #ccc;padding-bottom:2px;">${label}</div>`;
+            grupos[pg].forEach(a => {
+              html += `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`;
+            });
+          });
+
+          container.innerHTML = html;
         }
 
         // Deprecated single organ filler
@@ -2325,13 +2373,41 @@
         function carregarAssinaturasSelecao() {
           document.getElementById('assinaturasContainer').innerHTML =
             assinaturas.sort((a, b) => a.ordem - b.ordem)
-              .map(a => `<div class="sidebar-assinatura-item"><input type="checkbox" value="${a.id}" checked onchange="atualizarAssinaturasNaFolha()"><div><div style="font-weight:600;">${a.nome}</div><div style="color:var(--text-secondary);font-size:0.8rem;">${a.cargo}</div></div></div>`)
+              .map(a => `<div class="sidebar-assinatura-item">
+                <input type="checkbox" value="${a.id}" checked onchange="atualizarAssinaturasNaFolha()">
+                <div class="sidebar-assinatura-info">
+                  <div style="font-weight:600;">${a.nome}</div>
+                  <div style="color:var(--text-secondary);font-size:0.8rem;">${a.cargo}</div>
+                </div>
+                <div class="sidebar-assinatura-pagina">
+                  <span>Pág.</span>
+                  <select data-ass-id="${a.id}" onchange="atualizarAssinaturasNaFolha()">
+                    <option value="last" selected>Última</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+              </div>`)
               .join('');
           atualizarAssinaturasNaFolha();
         }
         function obterAssinaturasSelecionadas() {
-          const ids = [...document.querySelectorAll('#assinaturasContainer input:checked')].map(x => parseInt(x.value));
-          return assinaturas.filter(a => ids.includes(a.id)).sort((a, b) => a.ordem - b.ordem);
+          const items = [...document.querySelectorAll('#assinaturasContainer .sidebar-assinatura-item')];
+          const result = [];
+          items.forEach(item => {
+            const cb = item.querySelector('input[type="checkbox"]');
+            if (!cb || !cb.checked) return;
+            const id = parseInt(cb.value);
+            const a = assinaturas.find(x => x.id === id);
+            if (!a) return;
+            const sel = item.querySelector('select[data-ass-id]');
+            const pagina = sel ? sel.value : 'last';
+            result.push({ ...a, pagina });
+          });
+          return result.sort((a, b) => a.ordem - b.ordem);
         }
 
         /* Validação */
@@ -2366,10 +2442,10 @@
 
           document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value;
           document.getElementById('previewTexto').innerHTML = getTextoHTML();
+          // Assinaturas no preview simples - mostrar todas (paginação real é feita em paginateIntoPagesFixed)
+          const assSel = obterAssinaturasSelecionadas();
           document.getElementById('previewAssinaturasPdf').innerHTML =
-            obterAssinaturasSelecionadas()
-              .map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`)
-              .join('');
+            assSel.map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
         }
 
         function visualizarPrevia() {
@@ -2491,7 +2567,6 @@
           const blocks = [];
           const meta = oficioBodyClone.querySelector(".oficio-meta-info");
           const content = oficioBodyClone.querySelector(".oficio-content");
-          const assin = oficioBodyClone.querySelector(".oficio-assinatura");
 
           if (meta) blocks.push(meta.cloneNode(true));
           if (content) {
@@ -2524,11 +2599,7 @@
               blocks.push(node.cloneNode(true));
             }
           }
-          if (assin) {
-            const a = assin.cloneNode(true);
-            a.dataset.keepWithPrevious = "1";
-            blocks.push(a);
-          }
+          // Assinaturas NÃO são incluídas aqui - serão inseridas por página em paginateIntoPagesFixed
           return blocks;
         }
 
@@ -2606,6 +2677,20 @@
           for (let i = nodes.length - 1; i >= 0; i--) stackEl.insertBefore(nodes[i], stackEl.firstChild);
         }
 
+        function criarBlocoAssinaturas(assList) {
+          const div = document.createElement("div");
+          div.className = "oficio-assinatura";
+          div.style.textAlign = "center";
+          div.style.marginTop = "2.5rem";
+          assList.forEach(a => {
+            const bloco = document.createElement("div");
+            bloco.className = "assinatura-bloco";
+            bloco.innerHTML = `<div class="assinatura-nome-preview" style="font-weight:700;margin-top:2rem;">${a.nome}</div><div class="assinatura-cargo-preview" style="font-size:10pt;">${a.cargo}</div>`;
+            div.appendChild(bloco);
+          });
+          return div;
+        }
+
         function paginateIntoPagesFixed(root, headerSrc) {
           const pageWpx = mmToPx(210); const pageHpx = mmToPx(297);
           const headerHpx = mmToPx(32); const footerHpx = mmToPx(15);
@@ -2614,7 +2699,17 @@
           const contentBoxStyles = { left: marginLeft + "px", right: marginRight + "px", top: contentTop + "px", bottom: contentBottom + "px" };
 
           const blocks = buildBlocksForPdf();
-          const pages = [];
+
+          // Obter assinaturas selecionadas com páginas
+          const assSelecionadas = _assinaturasPdfOverride || obterAssinaturasSelecionadas();
+          const assPorPagina = {}; // { "1": [...], "2": [...], "last": [...] }
+          assSelecionadas.forEach(a => {
+            const pg = a.pagina || 'last';
+            if (!assPorPagina[pg]) assPorPagina[pg] = [];
+            assPorPagina[pg].push(a);
+          });
+
+          const pagesData = []; // array de { page, content, stack }
 
           function newPage() {
             const pg = createPageElement(headerSrc, pageWpx, pageHpx, headerHpx, footerHpx, contentBoxStyles);
@@ -2626,6 +2721,7 @@
             return { page: pg.page, content: pg.content, stack };
           }
 
+          // Fase 1: paginar conteúdo normalmente
           let current = newPage();
           for (let i = 0; i < blocks.length; i++) {
             const candidate = blocks[i].cloneNode(true);
@@ -2633,17 +2729,52 @@
             if (current.stack.scrollHeight > current.content.clientHeight) {
               current.stack.removeChild(candidate);
               const next = newPage();
-              if (candidate.dataset && candidate.dataset.keepWithPrevious === "1") {
-                const moved = popLastN(current.stack, 2);
-                prependNodes(next.stack, moved);
-              }
-              next.stack.appendChild(candidate);
-              pages.push(current.page);
+              pagesData.push(current);
               current = next;
+              current.stack.appendChild(candidate);
             }
           }
-          pages.push(current.page);
-          return pages;
+          pagesData.push(current);
+
+          // Fase 2: inserir assinaturas fixas (páginas numéricas)
+          const paginasFixas = Object.keys(assPorPagina).filter(k => k !== 'last').sort((a, b) => parseInt(a) - parseInt(b));
+          paginasFixas.forEach(pgNum => {
+            const idx = parseInt(pgNum) - 1; // 0-indexed
+            if (idx < 0) return;
+
+            // Criar páginas extras se necessário
+            while (pagesData.length <= idx) {
+              pagesData.push(newPage());
+            }
+
+            const target = pagesData[idx];
+            const blocoAss = criarBlocoAssinaturas(assPorPagina[pgNum]);
+            target.stack.appendChild(blocoAss);
+
+            // Se estourou, mover assinatura para nova página após esta
+            if (target.stack.scrollHeight > target.content.clientHeight) {
+              target.stack.removeChild(blocoAss);
+              const extra = newPage();
+              extra.stack.appendChild(blocoAss);
+              pagesData.splice(idx + 1, 0, extra);
+            }
+          });
+
+          // Fase 3: inserir assinaturas "última página"
+          if (assPorPagina['last'] && assPorPagina['last'].length > 0) {
+            const lastPage = pagesData[pagesData.length - 1];
+            const blocoAss = criarBlocoAssinaturas(assPorPagina['last']);
+            lastPage.stack.appendChild(blocoAss);
+
+            if (lastPage.stack.scrollHeight > lastPage.content.clientHeight) {
+              lastPage.stack.removeChild(blocoAss);
+              const extra = newPage();
+              extra.stack.appendChild(blocoAss);
+              pagesData.push(extra);
+            }
+          }
+
+          return pagesData.map(p => p.page);
         }
 
         async function renderPageToCanvas(pageEl) {
@@ -2652,6 +2783,12 @@
 
         async function gerarPDF(oficio = null) {
           if (oficio) {
+            // Configurar override de assinaturas para paginação
+            _assinaturasPdfOverride = (oficio.assinaturas || []).map(a => ({
+              ...a,
+              pagina: a.pagina || 'last'
+            }));
+
             document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
             document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
 
@@ -2709,6 +2846,7 @@
             console.error(e); mostrarMensagem('Erro ao gerar PDF.', 'error');
           } finally {
             removePrintRoot(root);
+            _assinaturasPdfOverride = null;
           }
         }
 
@@ -2864,10 +3002,19 @@
           document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
           if (h.assinaturas) {
             h.assinaturas.forEach(sig => {
-              let cb = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`);
-              if (cb) cb.checked = true;
+              const item = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`);
+              if (item) {
+                item.checked = true;
+                // Restaurar página da assinatura
+                const container = item.closest('.sidebar-assinatura-item');
+                if (container) {
+                  const sel = container.querySelector('select[data-ass-id]');
+                  if (sel && sig.pagina) sel.value = sig.pagina;
+                }
+              }
             });
           }
+          atualizarAssinaturasNaFolha();
           showTab('gerador');
           mostrarMensagem("Dados carregados.", "success");
         }
