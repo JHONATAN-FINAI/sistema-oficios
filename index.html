@@ -813,6 +813,333 @@
       margin-top: 2px;
     }
 
+    /* ===== EDITOR WORD-LIKE ===== */
+    .editor-workspace {
+      display: flex;
+      gap: 0;
+      min-height: calc(100vh - 200px);
+      position: relative;
+    }
+
+    /* Toolbar fixa topo */
+    .editor-toolbar-fixed {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.5rem 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 0.3rem;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .btn-tool {
+      padding: 0.4rem 0.65rem;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-tool:hover {
+      background: var(--border-light);
+      border-color: var(--border);
+    }
+
+    .btn-tool.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .toolbar-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    /* Área central - folha A4 */
+    .editor-page-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+      background: #e8e8e8;
+      border-radius: var(--radius);
+      min-height: 600px;
+      overflow-y: auto;
+    }
+
+    .editor-a4-page {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Cabeçalho da folha */
+    .editor-a4-page .oficio-header {
+      cursor: pointer;
+      transition: outline 0.2s;
+    }
+    .editor-a4-page .oficio-header:hover {
+      outline: 2px dashed var(--primary);
+      outline-offset: -2px;
+    }
+
+    /* Campos inline editáveis */
+    .editor-a4-page .oficio-body {
+      padding: 0.8cm 2cm 1cm 3cm;
+      flex: 1 1 auto;
+    }
+
+    .inline-field {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .inline-field .label {
+      font-weight: 700;
+      font-size: 12pt;
+      white-space: nowrap;
+      color: #000;
+    }
+
+    .inline-field-value {
+      font-size: 12pt;
+      color: #000;
+      flex: 1;
+    }
+
+    .inline-input {
+      width: 100%;
+      border: none;
+      border-bottom: 1px dashed var(--border);
+      background: transparent;
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      color: #000;
+      padding: 2px 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .inline-input:focus {
+      border-bottom-color: var(--primary);
+      background: rgba(37, 99, 235, 0.03);
+    }
+
+    .inline-input:read-only {
+      border-bottom: none;
+      cursor: default;
+    }
+
+    .inline-input-right {
+      text-align: right;
+    }
+
+    /* Área do editor TinyMCE dentro da folha */
+    .editor-content-area {
+      margin: 1rem 0;
+      min-height: 200px;
+    }
+
+    .editor-content-area .tox-tinymce {
+      border: none !important;
+    }
+
+    /* Destinatários na folha */
+    .dest-block {
+      border: 1px dashed transparent;
+      padding: 0.3rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      transition: border-color 0.2s;
+    }
+
+    .dest-block:hover {
+      border-color: var(--border);
+    }
+
+    .dest-block .dest-remove {
+      display: none;
+      cursor: pointer;
+      color: var(--error);
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+    }
+
+    .dest-block:hover .dest-remove {
+      display: inline;
+    }
+
+    /* Painel lateral */
+    .editor-sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: var(--bg-card);
+      border-left: 1px solid var(--border);
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
+      transition: width 0.3s, min-width 0.3s, padding 0.3s, opacity 0.3s;
+    }
+
+    .editor-sidebar.collapsed {
+      width: 0;
+      min-width: 0;
+      padding: 0;
+      overflow: hidden;
+      opacity: 0;
+      border: none;
+    }
+
+    .sidebar-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .sidebar-add-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .sidebar-add-row select {
+      flex: 1;
+      font-size: 0.85rem;
+      padding: 0.4rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .sidebar-org-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.6rem;
+      background: var(--border-light);
+      border-radius: 4px;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+    }
+
+    .sidebar-org-item .org-remove {
+      cursor: pointer;
+      color: var(--error);
+      font-weight: 700;
+      padding: 0 4px;
+    }
+
+    .sidebar-org-item .org-remove:hover {
+      background: rgba(220,38,38,0.1);
+      border-radius: 3px;
+    }
+
+    .sidebar-assinatura-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0;
+      font-size: 0.85rem;
+    }
+
+    .sidebar-assinatura-item input[type="checkbox"] {
+      accent-color: var(--primary);
+    }
+
+    .btn-sidebar-toggle {
+      position: absolute;
+      right: 320px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: 4px 0 0 4px;
+      padding: 0.8rem 0.3rem;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      transition: right 0.3s;
+    }
+
+    .btn-sidebar-toggle.collapsed {
+      right: 0;
+    }
+
+    /* Assinatura na folha */
+    .editor-a4-page .oficio-assinatura {
+      text-align: center;
+      margin: 2.5rem 0 1.5rem 0;
+    }
+
+    /* Responsivo */
+    @media (max-width: 900px) {
+      .editor-sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 100;
+        box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+      }
+      .editor-sidebar.collapsed {
+        transform: translateX(100%);
+      }
+      .editor-a4-page {
+        width: 100%;
+        min-height: auto;
+      }
+      .btn-sidebar-toggle {
+        right: 0;
+      }
+    }
+
     /* Modals */
     .modal {
       display: none;
@@ -1332,130 +1659,147 @@
           <div class="main-content-inner">
 
         <div id="gerador" class="tab-content active">
-          <div class="form-section">
-            <h3 class="section-title">📋 Dados do Ofício</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Número do Ofício</label>
-                <input type="text" id="numeroOficio" class="form-input readonly" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Data</label>
-                <input type="text" id="dataOficio" class="form-input readonly" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Local</label>
-                <input type="text" id="localOficio" value="Rondonópolis, MT" class="form-input readonly" readonly>
-              </div>
+          <!-- Toolbar fixa -->
+          <div class="editor-toolbar-fixed">
+            <div class="toolbar-group">
+              <button type="button" class="btn-tool" onclick="formatarTexto('bold')" title="Negrito"><b>N</b></button>
+              <button type="button" class="btn-tool" onclick="formatarTexto('italic')" title="Itálico"><i>I</i></button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-group">
+              <button type="button" class="btn-tool" onclick="alinharTexto('left')" title="Esquerda">⬅</button>
+              <button type="button" class="btn-tool" onclick="alinharTexto('center')" title="Centro">↔</button>
+              <button type="button" class="btn-tool" onclick="alinharTexto('right')" title="Direita">➡</button>
+              <button type="button" class="btn-tool" onclick="alinharTexto('justify')" title="Justificar">☰</button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-group">
+              <button type="button" class="btn-tool" onclick="inserirLista()" title="Lista">Lista</button>
+              <button type="button" class="btn-tool" onclick="abrirModalTabela()" title="Tabela">Tabela</button>
+              <button type="button" class="btn-tool" onclick="inserirTextoModelo()" title="Modelo">Modelo</button>
+            </div>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-group">
+              <button type="button" class="btn-tool" onclick="triggerHeaderUpload()" title="Carregar cabeçalho">Cabeçalho</button>
+              <button type="button" class="btn-tool" onclick="resetHeaderToUrl()" title="Usar URL padrão">URL</button>
+              <input id="headerFileInput" type="file" accept="image/*" style="display:none" />
+            </div>
+            <div class="toolbar-actions">
+              <button class="btn btn-sm btn-secondary" onclick="limparFormulario()">Limpar</button>
+              <button class="btn btn-sm btn-warning" onclick="imprimirOficio()">Imprimir</button>
+              <button class="btn btn-sm btn-success" onclick="gerarPDF()">PDF</button>
+              <button class="btn btn-sm btn-primary" onclick="gerarOficio()" id="btnGerarOficio">Salvar</button>
+              <button type="button" class="btn-tool" onclick="toggleSidebar()" id="btnToggleSidebar" title="Painel lateral">☰</button>
             </div>
           </div>
 
-          <div class="form-section">
-            <h3 class="section-title">🏢 Destinatário(s)</h3>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Adicionar Órgão</label>
-                <div style="display: flex; gap: 0.5rem;">
-                  <select id="orgaoDestinatario" class="form-select" style="flex: 1;">
-                    <option value="">Selecione um órgão...</option>
-                  </select>
-                  <button type="button" class="btn btn-primary btn-sm" onclick="adicionarOrgaoAoOficio()">➕</button>
+          <!-- Workspace: folha + sidebar -->
+          <div class="editor-workspace">
+            <!-- Folha A4 central -->
+            <div class="editor-page-area">
+              <div class="editor-a4-page" id="editorPage">
+                <!-- Cabeçalho imagem -->
+                <div class="oficio-header" onclick="triggerHeaderUpload()" title="Clique para alterar cabeçalho">
+                  <img id="headerImg" alt="Cabeçalho" />
                 </div>
-                <div class="error-message" id="orgaoError">Adicione pelo menos um órgão destinatário</div>
-              </div>
-            </div>
-            <div id="selectedOrgaosContainer" class="selected-orgs-container">
-              <!-- Órgãos selecionados aparecerão aqui -->
-            </div>
-          </div>
 
-          <div class="form-section">
-            <h3 class="section-title">✍️ Assinaturas</h3>
-            <label class="form-label">Selecione as assinaturas:</label>
-            <div id="assinaturasContainer" class="assinaturas-selection"></div>
-          </div>
+                <!-- Corpo -->
+                <div class="oficio-body">
+                  <!-- Metadados inline -->
+                  <div class="oficio-meta-info">
+                    <div class="inline-field">
+                      <span class="label">OFÍCIO:</span>
+                      <input type="text" id="numeroOficio" class="inline-input" readonly />
+                    </div>
+                    <div class="inline-field" style="justify-content:flex-end;">
+                      <input type="text" id="dataOficio" class="inline-input inline-input-right" readonly style="max-width:280px;" />
+                    </div>
 
-          <div class="form-section">
-            <h3 class="section-title">📄 Conteúdo</h3>
-            <div class="form-grid">
-              <div class="form-group full-width">
-                <label class="form-label required">Assunto</label>
-                <input type="text" id="assuntoOficio" class="form-input" placeholder="Digite o assunto..."
-                  maxlength="200" required>
-                <div class="error-message" id="assuntoError">Digite o assunto do ofício</div>
-              </div>
+                    <!-- Destinatários renderizados na folha -->
+                    <div id="previewDestinatariosContainer">
+                      <div class="inline-field dest-placeholder" id="destPlaceholder" style="color:#999; font-style:italic;">
+                        Adicione destinatários no painel lateral →
+                      </div>
+                    </div>
 
-              <div class="form-group full-width">
-                <label class="form-label required">Texto do Ofício</label>
-                <div class="editor-controls">
-                  <button type="button" class="btn-editor header-manual-tool" onclick="triggerHeaderUpload()">🖼️
-                    Carregar
-                    Cabeçalho</button>
-                  <button type="button" class="btn-editor header-manual-tool" onclick="resetHeaderToUrl()">🌐 Usar
-                    URL</button>
-                  <button type="button" class="btn-editor" onclick="abrirModalTabela()">📊 Tabela</button>
-                  <button type="button" class="btn-editor" onclick="inserirLista()">📝 Lista</button>
-                  <button type="button" class="btn-editor" onclick="formatarTexto('bold')">Negrito</button>
-                  <button type="button" class="btn-editor" onclick="formatarTexto('italic')">Itálico</button>
-                  <button type="button" class="btn-editor" onclick="inserirTextoModelo()">📋 Modelo</button>
-                  <span class="align-label">Alinhar:</span>
-                  <div class="align-group">
-                    <button type="button" class="btn-editor" onclick="alinharTexto('left')">⬅️</button>
-                    <button type="button" class="btn-editor" onclick="alinharTexto('center')">↔️</button>
-                    <button type="button" class="btn-editor" onclick="alinharTexto('right')">➡️</button>
-                    <button type="button" class="btn-editor" onclick="alinharTexto('justify')">📄</button>
+                    <div class="inline-field">
+                      <span class="label">Assunto:</span>
+                      <input type="text" id="assuntoOficio" class="inline-input" placeholder="Digite o assunto..." maxlength="200" />
+                    </div>
+                    <div class="error-message" id="assuntoError">Digite o assunto do ofício</div>
                   </div>
-                  <input id="headerFileInput" type="file" accept="image/*" style="display:none" />
+
+                  <!-- Conteúdo editável -->
+                  <div class="oficio-content">
+                    <p class="no-indent"><strong>Prezado(a) Senhor(a),</strong></p>
+                    <div class="editor-content-area">
+                      <textarea id="textoOficio" style="width:100%;"></textarea>
+                    </div>
+                  </div>
+
+                  <!-- Assinaturas renderizadas -->
+                  <div class="oficio-assinatura" id="previewAssinaturas">
+                    <div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral →</div>
+                  </div>
                 </div>
-                <textarea id="textoOficio" style="width:100%; min-height: 260px;"></textarea>
-                <div class="error-message" id="textoError">Digite o texto do ofício</div>
+
+                <!-- Rodapé -->
+                <div class="oficio-footer">
+                  <div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div>
+                  <div class="footer-linha2">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Painel lateral direito -->
+            <div class="editor-sidebar" id="editorSidebar">
+              <div class="sidebar-section">
+                <div class="sidebar-section-title">Destinatários</div>
+                <div class="sidebar-add-row">
+                  <select id="orgaoDestinatario" class="form-select" style="font-size:0.85rem;">
+                    <option value="">Selecione...</option>
+                  </select>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="adicionarOrgaoAoOficio()" style="padding:0.35rem 0.7rem;">+</button>
+                </div>
+                <div class="error-message" id="orgaoError">Adicione pelo menos um destinatário</div>
+                <div id="selectedOrgaosContainer"></div>
+              </div>
+
+              <div class="sidebar-section">
+                <div class="sidebar-section-title">Assinaturas</div>
+                <div id="assinaturasContainer" class="assinaturas-selection"></div>
+              </div>
+
+              <div class="sidebar-section">
+                <div class="sidebar-section-title">Local</div>
+                <input type="text" id="localOficio" value="Rondonópolis, MT" class="inline-input" readonly style="font-size:0.85rem;" />
               </div>
             </div>
           </div>
 
-          <div class="button-group">
-            <button class="btn btn-secondary" onclick="limparFormulario()">🗑️ Limpar Campos</button>
-            <button class="btn btn-primary" onclick="visualizarPrevia()">👁️ Visualizar Prévia</button>
-            <button class="btn btn-success" onclick="gerarOficio()" id="btnGerarOficio">✅ Gerar Ofício</button>
-          </div>
-
-          <div id="previewSection" class="preview-section">
+          <!-- Preview oculto para geração PDF (mantém estrutura original) -->
+          <div id="previewSection" class="preview-section" style="display:none;">
             <div class="preview-card" id="previewCard">
               <div class="oficio-header">
-                <img id="headerImg" alt="Cabeçalho" />
+                <img id="headerImgPdf" alt="Cabeçalho" />
               </div>
-
               <div class="oficio-body">
                 <div class="oficio-meta-info">
                   <div style="margin-bottom:0.25rem;"><strong id="previewNumeroHeader">OFÍCIO: ---</strong></div>
                   <div style="text-align:right; margin-bottom:1rem;"><span id="previewDataHeader">---</span></div>
-                  <div id="previewDestinatariosContainer">
-                    <div class="oficio-para"><span class="label">Para:</span> <span id="previewPara">---</span></div>
-                    <div class="oficio-endereco"><span class="label">Endereço:</span> <span
-                        id="previewEndereco">---</span></div>
-                  </div>
-                  <div class="oficio-assunto"><span class="label">Assunto:</span> <span id="previewAssunto">---</span>
-                  </div>
+                  <div id="previewDestinatariosPdf"></div>
+                  <div class="oficio-assunto"><span class="label">Assunto:</span> <span id="previewAssunto">---</span></div>
                 </div>
-
                 <div class="oficio-content">
                   <p class="no-indent"><strong>Prezado(a) Senhor(a),</strong></p>
                   <div id="previewTexto">---</div>
                 </div>
-
-                <div class="oficio-assinatura" id="previewAssinaturas"></div>
+                <div class="oficio-assinatura" id="previewAssinaturasPdf"></div>
               </div>
-
               <div class="oficio-footer">
                 <div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div>
                 <div class="footer-linha2">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>
               </div>
-            </div>
-
-            <div class="button-group">
-              <button class="btn btn-secondary" onclick="editarOficio()">✏️ Editar</button>
-              <button class="btn btn-warning" onclick="imprimirOficio()">🖨️ Imprimir</button>
-              <button class="btn btn-success" onclick="gerarPDF()">📄 Baixar PDF</button>
             </div>
           </div>
         </div>
@@ -1872,21 +2216,63 @@
         }
 
         function renderSelectedOrgaos() {
+          // Sidebar list
           const container = document.getElementById('selectedOrgaosContainer');
+          if (container) {
+            if (selectedOrgaosList.length === 0) {
+              container.innerHTML = '';
+            } else {
+              container.innerHTML = selectedOrgaosList.map(o => `
+                <div class="sidebar-org-item">
+                  <span>${o.nome}</span>
+                  <span class="org-remove" onclick="removerOrgaoDoOficio('${o.codigo}')">✕</span>
+                </div>
+              `).join('');
+            }
+          }
+          // Atualizar folha A4
+          renderDestinatariosNaFolha();
+        }
+
+        function renderDestinatariosNaFolha() {
+          const container = document.getElementById('previewDestinatariosContainer');
           if (!container) return;
+          const placeholder = document.getElementById('destPlaceholder');
 
           if (selectedOrgaosList.length === 0) {
-            container.innerHTML = '<!-- Órgãos selecionados aparecerão aqui -->';
+            container.innerHTML = '<div class="inline-field dest-placeholder" id="destPlaceholder" style="color:#999; font-style:italic;">Adicione destinatários no painel lateral →</div>';
             return;
           }
 
-          container.innerHTML = selectedOrgaosList.map(o => `
-            <div class="selected-org-item">
-              <div class="selected-org-info">
-                <div class="selected-org-name">${o.nome}</div>
-                <div class="selected-org-address">${o.endereco}</div>
-              </div>
-              <button type="button" class="btn-remove-org" onclick="removerOrgaoDoOficio('${o.codigo}')">✕</button>
+          container.innerHTML = selectedOrgaosList.map(org => `
+            <div class="dest-block">
+              <div class="inline-field"><span class="label">Para:</span> <span class="inline-field-value">${org.nome}</span><span class="dest-remove" onclick="removerOrgaoDoOficio('${org.codigo}')">✕</span></div>
+              <div class="inline-field"><span class="label">Endereço:</span> <span class="inline-field-value">${org.endereco}</span></div>
+            </div>
+          `).join('');
+        }
+
+        function toggleSidebar() {
+          const sidebar = document.getElementById('editorSidebar');
+          const btn = document.getElementById('btnToggleSidebar');
+          sidebar.classList.toggle('collapsed');
+          btn.classList.toggle('active');
+        }
+
+        function atualizarAssinaturasNaFolha() {
+          const selecionadas = obterAssinaturasSelecionadas();
+          const container = document.getElementById('previewAssinaturas');
+          if (!container) return;
+
+          if (selecionadas.length === 0) {
+            container.innerHTML = '<div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral →</div>';
+            return;
+          }
+
+          container.innerHTML = selecionadas.map(a => `
+            <div class="assinatura-bloco">
+              <div class="assinatura-nome-preview">${a.nome}</div>
+              <div class="assinatura-cargo-preview">${a.cargo}</div>
             </div>
           `).join('');
         }
@@ -1896,8 +2282,9 @@
         function carregarAssinaturasSelecao() {
           document.getElementById('assinaturasContainer').innerHTML =
             assinaturas.sort((a, b) => a.ordem - b.ordem)
-              .map(a => `<div class="assinatura-item"><input type="checkbox" value="${a.id}" checked><div class="assinatura-details"><div class="assinatura-nome">${a.nome}</div><div class="assinatura-cargo">${a.cargo}</div></div></div>`)
+              .map(a => `<div class="sidebar-assinatura-item"><input type="checkbox" value="${a.id}" checked onchange="atualizarAssinaturasNaFolha()"><div><div style="font-weight:600;">${a.nome}</div><div style="color:var(--text-secondary);font-size:0.8rem;">${a.cargo}</div></div></div>`)
               .join('');
+          atualizarAssinaturasNaFolha();
         }
         function obterAssinaturasSelecionadas() {
           const ids = [...document.querySelectorAll('#assinaturasContainer input:checked')].map(x => parseInt(x.value));
@@ -1909,39 +2296,50 @@
           let ok = true;
           if (selectedOrgaosList.length === 0) { document.getElementById('orgaoError').style.display = 'block'; ok = false; } else document.getElementById('orgaoError').style.display = 'none';
           if (!document.getElementById('assuntoOficio').value) { document.getElementById('assuntoError').style.display = 'block'; ok = false; } else document.getElementById('assuntoError').style.display = 'none';
-          if (!getTextoPlain().trim()) { document.getElementById('textoError').style.display = 'block'; ok = false; } else document.getElementById('textoError').style.display = 'none';
+          const textoErr = document.getElementById('textoError');
+          if (!getTextoPlain().trim()) { if (textoErr) textoErr.style.display = 'block'; mostrarMensagem('Digite o texto do ofício.', 'warning'); ok = false; } else { if (textoErr) textoErr.style.display = 'none'; }
           return ok;
         }
 
-        /* Preview & Generating */
-        function visualizarPrevia() {
+        /* Preview & Generating - popula o preview oculto para PDF/impressão */
+        function popularPreviewPdf() {
           applyHeaderSource();
-          if (!validarFormulario()) return;
+          const headerImgPdf = document.getElementById('headerImgPdf');
+          const headerImgMain = document.getElementById('headerImg');
+          if (headerImgPdf && headerImgMain) headerImgPdf.src = headerImgMain.src;
 
           document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${document.getElementById('numeroOficio').value}`;
           document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${document.getElementById('dataOficio').value}`;
 
-          const container = document.getElementById('previewDestinatariosContainer');
-          container.innerHTML = selectedOrgaosList.map(org => `
-            <div style="margin-bottom: 0.8rem;">
-              <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-              <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
-            </div>
-          `).join('');
+          const container = document.getElementById('previewDestinatariosPdf');
+          if (container) {
+            container.innerHTML = selectedOrgaosList.map(org => `
+              <div style="margin-bottom: 0.8rem;">
+                <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
+                <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+              </div>
+            `).join('');
+          }
 
           document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value;
           document.getElementById('previewTexto').innerHTML = getTextoHTML();
-          document.getElementById('previewAssinaturas').innerHTML =
+          document.getElementById('previewAssinaturasPdf').innerHTML =
             obterAssinaturasSelecionadas()
               .map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`)
               .join('');
-          document.getElementById('previewSection').classList.add('show');
+        }
+
+        function visualizarPrevia() {
+          if (!validarFormulario()) return;
+          popularPreviewPdf();
+          document.getElementById('previewSection').style.display = 'block';
           document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
         }
-        function editarOficio() { document.getElementById('previewSection').classList.remove('show'); }
+        function editarOficio() { document.getElementById('previewSection').style.display = 'none'; }
 
         async function imprimirOficio() {
           if (!validarFormulario()) return;
+          popularPreviewPdf();
           applyHeaderSource();
           const headerImgEl = document.getElementById("headerImg");
           await waitImg(headerImgEl);
@@ -2214,7 +2612,7 @@
             document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
             document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
 
-            const container = document.getElementById('previewDestinatariosContainer');
+            const container = document.getElementById('previewDestinatariosPdf');
             if (oficio.destinatarios && Array.from(oficio.destinatarios).length > 0) {
               container.innerHTML = oficio.destinatarios.map(org => `
                 <div style="margin-bottom: 0.8rem;">
@@ -2223,7 +2621,6 @@
                 </div>
               `).join('');
             } else {
-              // Backward compatibility
               const org = orgaos.find(o => o.nome === oficio.destinatario);
               container.innerHTML = `
                 <div style="margin-bottom: 0.8rem;">
@@ -2235,10 +2632,16 @@
 
             document.getElementById('previewAssunto').textContent = oficio.assunto;
             document.getElementById('previewTexto').innerHTML = oficio.texto;
-            document.getElementById('previewAssinaturas').innerHTML = (oficio.assinaturas || []).map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
-            document.getElementById('previewSection').classList.add('show');
+            document.getElementById('previewAssinaturasPdf').innerHTML = (oficio.assinaturas || []).map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
+            document.getElementById('previewSection').style.display = 'block';
+            // Sync header img
+            const headerImgPdf = document.getElementById('headerImgPdf');
+            const headerImgMain = document.getElementById('headerImg');
+            if (headerImgPdf && headerImgMain) headerImgPdf.src = headerImgMain.src;
           } else {
-            visualizarPrevia();
+            if (!validarFormulario()) return;
+            popularPreviewPdf();
+            document.getElementById('previewSection').style.display = 'block';
           }
           applyHeaderSource();
           const headerImgEl = document.getElementById("headerImg");
