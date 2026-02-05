@@ -1196,6 +1196,58 @@
       margin: 2.5rem 0 1.5rem 0;
     }
 
+    /* Live pages preview */
+    #livePagesContainer {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .live-page-wrapper {
+      position: relative;
+    }
+
+    .live-page-label {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 0.3rem;
+      font-family: Arial, sans-serif;
+    }
+
+    .live-page {
+      background: #fff;
+      width: 210mm;
+      height: 297mm;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      overflow: hidden;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .live-page > div {
+      transform-origin: top left;
+      width: 100%;
+      height: 100%;
+    }
+
+    .page-count-bar {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 0.4rem 1rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      z-index: 10;
+    }
+
     /* Responsivo */
     @media (max-width: 900px) {
       .editor-sidebar {
@@ -1803,7 +1855,7 @@
 
                     <div class="inline-field">
                       <span class="label">Assunto:</span>
-                      <input type="text" id="assuntoOficio" class="inline-input" placeholder="Digite o assunto..." maxlength="200" />
+                      <input type="text" id="assuntoOficio" class="inline-input" placeholder="Digite o assunto..." maxlength="200" oninput="agendarLivePagination()" />
                     </div>
                     <div class="error-message" id="assuntoError">Digite o assunto do ofício</div>
                   </div>
@@ -1828,6 +1880,12 @@
                   <div class="footer-linha2">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>
                 </div>
               </div>
+
+              <!-- Preview de páginas ao vivo -->
+              <div id="livePagesContainer"></div>
+
+              <!-- Barra de contagem de páginas -->
+              <div class="page-count-bar" id="pageCountBar">Página 1 de 1</div>
             </div>
 
             <!-- Painel lateral direito -->
@@ -2209,7 +2267,11 @@
           th,td{border:1px solid #000;padding:8px 12px;}
           th{background:#f0f0f0;font-weight:700;text-align:center;}`,
             setup: (ed) => {
-              ed.on('init', () => ed.setContent('<p>Venho através deste </p>'));
+              ed.on('init', () => {
+                ed.setContent('<p>Venho através deste </p>');
+                setTimeout(agendarLivePagination, 1000);
+              });
+              ed.on('input change keyup', agendarLivePagination);
               ed.ui.registry.addButton('recuo', {
                 text: '¶→',
                 tooltip: 'Aplicar/remover recuo 2,5cm',
@@ -2276,6 +2338,80 @@
         function inserirTextoModelo() { tinymce.get('textoOficio')?.setContent(`<p>Na oportunidade de cumprimentá-lo(a), venho por meio deste informar que:</p><p>&nbsp;</p><p>Para tanto, solicito que sejam tomadas as devidas providências.</p>`); }
         function getTextoHTML() { return tinymce.get('textoOficio')?.getContent() || ''; }
         function getTextoPlain() { return tinymce.get('textoOficio')?.getContent({ format: 'text' }) || ''; }
+
+        /* ===== LIVE PAGINATION ===== */
+        let _livePaginationTimer = null;
+        function agendarLivePagination() {
+          if (_livePaginationTimer) clearTimeout(_livePaginationTimer);
+          _livePaginationTimer = setTimeout(executarLivePagination, 600);
+        }
+
+        function executarLivePagination() {
+          try {
+            const headerImgEl = document.getElementById('headerImg');
+            const headerSrc = headerImgEl ? (headerImgEl.src || '') : '';
+            if (!headerSrc) return;
+
+            // Tornar preview acessível temporariamente
+            const previewSec = document.getElementById('previewSection');
+            const wasHidden = previewSec && previewSec.style.display === 'none';
+            if (wasHidden) {
+              previewSec.style.visibility = 'hidden';
+              previewSec.style.position = 'absolute';
+              previewSec.style.left = '-9999px';
+              previewSec.style.display = 'block';
+            }
+
+            popularPreviewPdf();
+
+            const root = document.createElement('div');
+            root.style.position = 'fixed';
+            root.style.left = '0';
+            root.style.top = '0';
+            root.style.width = '210mm';
+            root.style.opacity = '0';
+            root.style.pointerEvents = 'none';
+            root.style.zIndex = '-1';
+            root.style.background = '#fff';
+            document.body.appendChild(root);
+
+            const pages = paginateIntoPagesFixed(root, headerSrc);
+            const container = document.getElementById('livePagesContainer');
+            const countBar = document.getElementById('pageCountBar');
+
+            container.innerHTML = '';
+            pages.forEach((pageEl, i) => {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'live-page-wrapper';
+
+              const label = document.createElement('div');
+              label.className = 'live-page-label';
+              label.textContent = `Página ${i + 1} de ${pages.length}`;
+
+              const lp = document.createElement('div');
+              lp.className = 'live-page';
+              lp.appendChild(pageEl.cloneNode(true));
+
+              wrapper.appendChild(label);
+              wrapper.appendChild(lp);
+              container.appendChild(wrapper);
+            });
+
+            if (countBar) countBar.textContent = `${pages.length} página${pages.length > 1 ? 's' : ''}`;
+
+            root.remove();
+
+            // Restaurar preview
+            if (wasHidden) {
+              previewSec.style.display = 'none';
+              previewSec.style.visibility = '';
+              previewSec.style.position = '';
+              previewSec.style.left = '';
+            }
+          } catch (e) {
+            console.warn('Live pagination error:', e);
+          }
+        }
 
         /* Orgãos/Assinaturas */
         function carregarOrgaos() {
@@ -2350,6 +2486,7 @@
               <div class="inline-field"><span class="label">Endereço:</span> <span class="inline-field-value">${org.endereco}</span></div>
             </div>
           `).join('');
+          agendarLivePagination();
         }
 
         function toggleSidebar() {
@@ -2394,9 +2531,8 @@
           });
 
           container.innerHTML = html;
+          agendarLivePagination();
         }
-
-        // Deprecated single organ filler
         function preencherOrgao() { }
         function carregarAssinaturasSelecao() {
           const maxPages = 5;
