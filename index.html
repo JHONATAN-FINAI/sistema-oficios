@@ -1905,6 +1905,7 @@
     let orgaos = [];
     let selectedOrgaosList = [];
     let currentEditDocId = null;
+    let isSaving = false;
 
 
     // --- INITIALIZATION ---
@@ -1951,6 +1952,10 @@
 
         const q = query(collection(db, "oficios"), orderBy("id", "desc"));
         window.firestore.onSnapshot(q, (snapshot) => {
+          if (isSaving) {
+            console.log("Ignorando snapshot durante salvamento...");
+            return;
+          }
           historico = [];
           let maxNum = 0;
           const currentYear = new Date().getFullYear();
@@ -2268,9 +2273,29 @@
     }
     function editarOficio() { document.getElementById('previewSection').style.display = 'none'; }
 
-    async function imprimirOficio() {
-      if (!validarFormulario()) return;
-      popularPreviewPdf();
+    async function imprimirOficio(oficioData = null) {
+      if (!oficioData && !validarFormulario()) return;
+
+      if (oficioData) {
+        // Se passamos dados específicos (durante salvamento), popula o preview oculto com eles
+        document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficioData.numero}`;
+        document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficioData.dataCompleta}`;
+
+        const container = document.getElementById('previewDestinatariosPdf');
+        if (container) {
+          container.innerHTML = (oficioData.destinatarios || []).map(org => `
+                <div style="margin-bottom: 0.8rem;">
+                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+                </div>
+              `).join('');
+        }
+        document.getElementById('previewAssunto').textContent = oficioData.assunto;
+        document.getElementById('previewTexto').innerHTML = oficioData.texto;
+      } else {
+        popularPreviewPdf();
+      }
+
       applyHeaderSource();
       const headerImgEl = document.getElementById("headerImg");
       await waitImg(headerImgEl);
@@ -2304,20 +2329,34 @@
 
     async function gerarOficio() {
       if (!validarFormulario()) return;
+
+      const btn = document.getElementById('btnGerarOficio');
+      const originalText = btn.textContent;
+
+      // Bloquear interface e capturar dados IMEDIATAMENTE
+      isSaving = true;
+      btn.disabled = true;
+      btn.textContent = "Salvando...";
+
       const { addDoc, updateDoc, collection, doc } = window.firestore;
       const db = window.db;
 
-      const destinatarioStr = selectedOrgaosList.map(o => o.nome).join('; ');
+      const numCapturado = document.getElementById('numeroOficio').value;
+      const dataCompletaCapturada = document.getElementById('dataOficio').value;
+      const assuntoCapturado = document.getElementById('assuntoOficio').value;
+      const textoCapturado = getTextoHTML();
+      const destinatariosCapturados = [...selectedOrgaosList];
+      const destinatarioStr = destinatariosCapturados.map(o => o.nome).join('; ');
 
       const novo = {
-        numero: document.getElementById('numeroOficio').value,
+        numero: numCapturado,
         data: new Date().toLocaleDateString('pt-BR'),
-        dataCompleta: document.getElementById('dataOficio').value,
+        dataCompleta: dataCompletaCapturada,
         destinatario: destinatarioStr,
-        destinatarios: selectedOrgaosList,
-        assunto: document.getElementById('assuntoOficio').value,
-        texto: getTextoHTML(),
-        protocolo: document.getElementById('btnGerarOficio').textContent === "Atualizar" ? (historico.find(h => h._docId === currentEditDocId)?.protocolo || "") : ""
+        destinatarios: destinatariosCapturados,
+        assunto: assuntoCapturado,
+        texto: textoCapturado,
+        protocolo: originalText === "Atualizar" ? (historico.find(h => h._docId === currentEditDocId)?.protocolo || "") : ""
       };
 
       try {
@@ -2327,16 +2366,24 @@
         } else {
           novo.id = Date.now();
           const docRef = await addDoc(collection(db, "oficios"), novo);
-          currentEditDocId = docRef.id; // Capture ID to prevent duplicates if saved again
-          document.getElementById('btnGerarOficio').textContent = "Atualizar";
+          currentEditDocId = docRef.id;
+          btn.textContent = "Atualizar";
           mostrarMensagem('Ofício salvo na nuvem!', 'success');
         }
-        // Auto-print after save
-        await imprimirOficio();
-        // REMOVED limparFormulario(); - Keep loaded for further edits/prints
+        // Imprimir usando os dados capturados ANTES de qualquer update de snapshot
+        await imprimirOficio(novo);
       } catch (e) {
         console.error(e);
         alert("Erro ao processar ofício: " + e.message);
+      } finally {
+        isSaving = false;
+        btn.disabled = false;
+        if (btn.textContent !== "Atualizar") btn.textContent = originalText;
+
+        // Agora que terminou tudo, se não for uma edição, pode limpar ou atualizar números
+        if (!currentEditDocId) {
+          atualizarCamposAutomaticos();
+        }
       }
     }
 
