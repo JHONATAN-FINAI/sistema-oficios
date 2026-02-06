@@ -1966,7 +1966,10 @@
             }
           });
           proximoNumero = maxNum + 1;
-          atualizarCamposAutomaticos();
+          // Protect current edit: don't overwrite number/data if user is editing
+          if (!currentEditDocId) {
+            atualizarCamposAutomaticos();
+          }
           atualizarTabelaHistorico();
           console.log("Histórico sincronizado.");
         });
@@ -2302,12 +2305,14 @@
           mostrarMensagem('Ofício atualizado na nuvem!', 'success');
         } else {
           novo.id = Date.now();
-          await addDoc(collection(db, "oficios"), novo);
+          const docRef = await addDoc(collection(db, "oficios"), novo);
+          currentEditDocId = docRef.id; // Capture ID to prevent duplicates if saved again
+          document.getElementById('btnGerarOficio').textContent = "Atualizar";
           mostrarMensagem('Ofício salvo na nuvem!', 'success');
         }
         // Auto-print after save
         await imprimirOficio();
-        limparFormulario();
+        // REMOVED limparFormulario(); - Keep loaded for further edits/prints
       } catch (e) {
         console.error(e);
         alert("Erro ao processar ofício: " + e.message);
