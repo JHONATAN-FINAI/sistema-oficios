@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +8,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/icons/default/icons.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/themes/silver/theme.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/models/dom/model.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/plugins/lists/plugin.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/plugins/table/plugin.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/plugins/autoresize/plugin.min.js"></script>
 
   <!-- Firebase SDKs -->
   <script type="module">
@@ -32,18 +25,15 @@
       measurementId: "G-J9CBXPY8KM"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    // Globals for Legacy Script Access
     window.db = db;
     window.auth = auth;
     window.firestore = { collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy, deleteDoc, updateDoc };
 
-    // Auth Logic
     const btnLogin = document.getElementById('btnLoginGoogle');
     const btnLogout = document.getElementById('btnLogout');
     const appContent = document.getElementById('appContent');
@@ -62,17 +52,7 @@
 
     if (btnLogout) {
       btnLogout.addEventListener('click', () => {
-        const confirmLogout = confirm("Tem certeza que deseja sair?");
-        if (confirmLogout) signOut(auth);
-      });
-    }
-
-    // Sidebar logout button
-    const btnLogoutSidebar = document.getElementById('btnLogoutSidebar');
-    if (btnLogoutSidebar) {
-      btnLogoutSidebar.addEventListener('click', () => {
-        const confirmLogout = confirm("Tem certeza que deseja sair?");
-        if (confirmLogout) signOut(auth);
+        if (confirm("Tem certeza que deseja sair?")) signOut(auth);
       });
     }
 
@@ -84,12 +64,7 @@
           userInfo.style.display = 'flex';
           if (userEmail) userEmail.textContent = user.email;
         }
-        // Sidebar email sync
-        const sidebarEmail = document.getElementById('sidebarUserEmail');
-        if (sidebarEmail) sidebarEmail.textContent = user.email;
-
-        // Trigger data load
-        if (window.carregarDadosOnline) window.carregarDadosOnline();
+        if (window.App) window.App.init();
       } else {
         if (loginScreen) loginScreen.style.display = 'flex';
         if (appContent) appContent.style.display = 'none';
@@ -100,8 +75,8 @@
 
   <style>
     :root {
-      --primary: #0470ee;
-      --primary-dark: #0355b8;
+      --primary: #1e5099;
+      --primary-dark: #0f3460;
       --border: #e2e8f0;
       --border-light: #f1f5f9;
       --bg-card: #fff;
@@ -132,167 +107,100 @@
     }
 
     .container {
-      max-width: 1600px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: .5rem;
+      padding: 1.5rem;
     }
 
-    /* Header (hidden - info moved to sidebar) */
     .header {
-      display: none;
-    }
-
-    /* Sidebar Layout */
-    .app-layout {
-      display: flex;
-      min-height: calc(100vh - 1rem);
-      gap: 0;
-    }
-
-    .sidebar {
-      width: 260px;
-      min-width: 260px;
-      background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%);
-      display: flex;
-      flex-direction: column;
-      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
-    }
-
-    .sidebar-brand {
-      padding: 1.75rem 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,.1);
-    }
-
-    .sidebar-brand h2 {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       color: #fff;
-      font-size: 1.15rem;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    }
+
+    .header-content {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header h1 {
+      font-family: Arial, sans-serif;
+      font-size: 2.5rem;
       font-weight: 700;
-      margin-bottom: .25rem;
+      margin-bottom: .5rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, .3);
     }
 
-    .sidebar-brand p {
-      color: rgba(255,255,255,.6);
-      font-size: .75rem;
-      line-height: 1.4;
+    .header .subtitle {
+      font-size: 1.125rem;
+      opacity: .95;
     }
 
-    .sidebar-nav {
+    .header .meta {
+      font-size: .875rem;
+      opacity: .8;
+      margin-top: .5rem;
+    }
+
+    .tabs-container {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--border-light);
+    }
+
+    .tab {
       flex: 1;
-      padding: 1rem 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .sidebar-nav .tab {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      padding: 1rem 1.5rem;
+      padding: 1.25rem 2rem;
       background: none;
       border: none;
-      border-left: 3px solid transparent;
+      border-bottom: 3px solid transparent;
       cursor: pointer;
       font-weight: 500;
-      color: rgba(255,255,255,.7);
-      transition: all .25s ease;
-      font-size: .95rem;
-      text-align: left;
-      width: 100%;
-    }
-
-    .sidebar-nav .tab:hover {
-      color: #fff;
-      background: rgba(255,255,255,.08);
-      border-left-color: rgba(255,255,255,.3);
-    }
-
-    .sidebar-nav .tab.active {
-      color: #fff;
-      background: rgba(255,255,255,.12);
-      border-left-color: #fff;
-      font-weight: 600;
-    }
-
-    .sidebar-nav .tab-icon {
-      font-size: 1.15rem;
-      width: 24px;
-      height: 20px;
-      text-align: center;
-      flex-shrink: 0;
+      color: var(--text-light);
+      transition: all .3s ease;
+      font-size: 1rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: .5rem;
     }
 
-    .sidebar-nav .tab-icon svg {
-      opacity: .75;
-      transition: opacity .25s ease;
+    .tab:hover {
+      color: var(--primary);
+      background: rgba(30, 80, 153, .05);
     }
 
-    .sidebar-nav .tab.active .tab-icon svg,
-    .sidebar-nav .tab:hover .tab-icon svg {
-      opacity: 1;
-    }
-
-    .sidebar-user {
-      padding: 1rem 1.5rem;
-      border-top: 1px solid rgba(255,255,255,.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
-    }
-
-    .sidebar-user-email {
-      color: rgba(255,255,255,.7);
-      font-size: .8rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-    }
-
-    .sidebar-user .btn-logout {
-      background: rgba(255,255,255,.1);
-      border: 1px solid rgba(255,255,255,.15);
-      color: rgba(255,255,255,.8);
-      padding: .4rem .75rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: .78rem;
-      font-weight: 500;
-      transition: all .2s;
-      white-space: nowrap;
-    }
-
-    .sidebar-user .btn-logout:hover {
-      background: rgba(220,38,38,.7);
-      border-color: rgba(220,38,38,.8);
-      color: #fff;
-    }
-
-    /* Main Content Area */
-    .main-content {
-      flex: 1;
-      min-width: 0;
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
       background: var(--bg-card);
-      border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border);
-      border-left: none;
-      overflow-y: auto;
-      max-height: calc(100vh - 1rem);
-    }
-
-    .main-content-inner {
-      padding: 2rem;
+      font-weight: 600;
     }
 
     .tab-content {
       display: none;
+      padding: 2rem;
     }
 
     .tab-content.active {
@@ -305,14 +213,12 @@
         opacity: 0;
         transform: translateY(10px);
       }
-
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
 
-    /* Forms */
     .form-section {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
@@ -404,92 +310,6 @@
       display: none;
     }
 
-    .assinaturas-selection {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    .assinatura-item {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      padding: .75rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg-card);
-    }
-
-    .assinatura-item input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-    }
-
-    .assinatura-details {
-      flex: 1;
-    }
-
-    .assinatura-cargo {
-      font-size: .875rem;
-      color: var(--text-light);
-    }
-
-    /* Selected Organs List */
-    .selected-orgs-container {
-      margin-top: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .selected-org-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      background: var(--border-light);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-    }
-
-    .selected-org-info {
-      flex: 1;
-    }
-
-    .selected-org-name {
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .selected-org-address {
-      font-size: 0.85rem;
-      color: var(--text-light);
-    }
-
-    .btn-remove-org {
-      background: none;
-      border: none;
-      color: var(--error);
-      cursor: pointer;
-      font-size: 1.25rem;
-      padding: 0.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: opacity 0.2s;
-    }
-
-    .btn-remove-org:hover {
-      opacity: 0.7;
-    }
-
-    /* Hide manual header tools as requested */
-    .header-manual-tool {
-      display: none !important;
-    }
-
-    /* Buttons & UI */
     .button-group {
       display: flex;
       gap: 1rem;
@@ -579,7 +399,6 @@
       color: var(--warning);
     }
 
-    /* Editor Toolbar */
     .editor-controls {
       display: flex;
       flex-wrap: wrap;
@@ -624,7 +443,6 @@
       align-items: center;
     }
 
-    /* ===== ESTILOS DO OFÍCIO (A4) - ESTRUTURA RÍGIDA ===== */
     .preview-section {
       display: none;
       margin-top: 2rem;
@@ -639,42 +457,18 @@
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
       border: 1px solid var(--border);
-
-      /* DIMENSÕES EXATAS A4 */
       width: 210mm;
       min-height: 297mm;
-
       margin: 0 auto 1.5rem;
       font-family: Arial, sans-serif;
       font-size: 12pt;
       color: var(--text);
-
-      /* Layout em coluna para rodapé fixo no final sem sobrepor */
       display: flex;
       flex-direction: column;
-
       overflow-y: auto;
       max-height: 80vh;
     }
 
-    /* === ESTILO MÁGICO PARA GERAÇÃO DO PDF === */
-    .preview-card.gerando-pdf {
-      box-shadow: none !important;
-      border: none !important;
-      margin: 0 !important;
-      border-radius: 0 !important;
-
-      height: 297mm !important;
-      max-height: 297mm !important;
-      overflow: hidden !important;
-    }
-
-    /* Margens ABNT no modo PDF (html2canvas captura CSS de tela) */
-    .preview-card.gerando-pdf .oficio-body {
-      padding: 3cm 2cm 2cm 3cm !important;
-    }
-
-    /* Cabeçalho */
     .oficio-header {
       width: 100%;
       background: #fff;
@@ -684,18 +478,14 @@
     }
 
     .oficio-header img {
+      width: 100%;
+      height: auto;
+      max-height: 3.5cm;
+      object-fit: contain;
       display: block;
       margin: 0 auto;
-      max-width: 82%;
-      /* nunca ultrapassa a largura do texto */
-      width: auto;
-      height: auto;
-      max-height: 3.2cm;
-      /* evita cabeçalho alto demais */
-      object-fit: contain;
     }
 
-    /* Corpo do Texto */
     .oficio-body {
       padding: 1cm 3cm 0 3cm;
       font-family: Arial, sans-serif;
@@ -706,7 +496,6 @@
       flex: 1 1 auto;
     }
 
-    /* Meta Info (Para, Assunto, etc) */
     .oficio-meta-info {
       margin-bottom: 1.5rem;
       line-height: 1.5;
@@ -723,7 +512,6 @@
       font-weight: 700;
     }
 
-    /* === CONTEÚDO E RECUOS === */
     .oficio-content {
       margin: 1.2rem 0;
       line-height: 1.5;
@@ -733,7 +521,8 @@
 
     .oficio-content p {
       display: block;
-      margin: 0;
+      margin: 0 0 1em 0;
+      text-indent: 2.5cm !important;
       text-align: justify;
       line-height: 1.5;
     }
@@ -743,25 +532,22 @@
       margin-bottom: 1rem;
     }
 
-    .oficio-content p.indent {
-      text-indent: 2.5cm !important;
-    }
-
-    .oficio-content p+p {
-      margin-top: 0;
-    }
-
     .oficio-content ul,
     .oficio-content ol {
-      margin: 0;
+      margin: 1em 0;
       padding-left: 1.25cm;
+    }
+
+    .oficio-content li {
+      margin-bottom: 0.5em;
     }
 
     .oficio-content table {
       width: 100%;
       border-collapse: collapse;
       margin: 1.2rem 0;
-      font-size: 10pt;
+      font-size: 12pt;
+      page-break-inside: avoid;
     }
 
     .oficio-content th,
@@ -778,17 +564,10 @@
       text-align: center;
     }
 
-    /* Remove text-indent from content inside tables */
-    .oficio-content table p,
-    .oficio-content th p,
-    .oficio-content td p {
-      text-indent: 0 !important;
-    }
-
-    /* Assinaturas */
     .oficio-assinatura {
       text-align: center;
       margin: 3rem 0 1.5rem 0;
+      page-break-inside: avoid;
     }
 
     .assinatura-bloco {
@@ -809,7 +588,6 @@
       font-size: 12pt;
     }
 
-    /* === RODAPÉ NO FIM DA PÁGINA, SEM ABSOLUTE === */
     .oficio-footer {
       position: static;
       width: 100%;
@@ -830,447 +608,6 @@
       margin-top: 2px;
     }
 
-    /* ===== EDITOR WORD-LIKE ===== */
-    .editor-workspace {
-      display: flex;
-      gap: 0;
-      min-height: calc(100vh - 200px);
-      position: relative;
-    }
-
-    /* Toolbar fixa topo */
-    .editor-toolbar-fixed {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.5rem 1rem;
-      margin-bottom: 1rem;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.4rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    .toolbar-divider {
-      width: 1px;
-      height: 24px;
-      background: var(--border);
-      margin: 0 0.3rem;
-    }
-
-    .toolbar-group {
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-
-    .btn-tool {
-      padding: 0.4rem 0.65rem;
-      background: transparent;
-      color: var(--text);
-      border: 1px solid transparent;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-
-    .btn-tool:hover {
-      background: var(--border-light);
-      border-color: var(--border);
-    }
-
-    .btn-tool.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-
-    .toolbar-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 0.4rem;
-      align-items: center;
-    }
-
-    /* Área central - folha A4 */
-    .editor-page-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1.5rem;
-      background: #e8e8e8;
-      border-radius: var(--radius);
-      min-height: 600px;
-      overflow-y: auto;
-    }
-
-    .editor-a4-page {
-      background: #fff;
-      width: 210mm;
-      min-height: 297mm;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      font-family: Arial, sans-serif;
-      font-size: 12pt;
-      color: #000;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      margin-bottom: 1.5rem;
-    }
-
-    /* Cabeçalho da folha */
-    .editor-a4-page .oficio-header {
-      cursor: pointer;
-      transition: outline 0.2s;
-    }
-    .editor-a4-page .oficio-header:hover {
-      outline: 2px dashed var(--primary);
-      outline-offset: -2px;
-    }
-
-    /* Campos inline editáveis */
-    .editor-a4-page .oficio-body {
-      padding: 0.8cm 2cm 1cm 3cm;
-      flex: 1 1 auto;
-    }
-
-    .inline-field {
-      display: flex;
-      align-items: baseline;
-      gap: 0.4rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .inline-field .label {
-      font-weight: 700;
-      font-size: 12pt;
-      white-space: nowrap;
-      color: #000;
-    }
-
-    .inline-field-value {
-      font-size: 12pt;
-      color: #000;
-      flex: 1;
-    }
-
-    .inline-input {
-      width: 100%;
-      border: none;
-      border-bottom: 1px dashed var(--border);
-      background: transparent;
-      font-family: Arial, sans-serif;
-      font-size: 12pt;
-      color: #000;
-      padding: 2px 4px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .inline-input:focus {
-      border-bottom-color: var(--primary);
-      background: rgba(37, 99, 235, 0.03);
-    }
-
-    .inline-input:read-only {
-      border-bottom: none;
-      cursor: default;
-    }
-
-    .inline-input-right {
-      text-align: right;
-    }
-
-    /* Área do editor TinyMCE dentro da folha */
-    .editor-content-area {
-      margin: 1rem 0;
-      min-height: 200px;
-    }
-
-    .editor-content-area .tox-tinymce {
-      border: none !important;
-    }
-
-    /* Destinatários na folha */
-    .dest-block {
-      border: 1px dashed transparent;
-      padding: 0.3rem;
-      border-radius: 4px;
-      margin-bottom: 0.5rem;
-      transition: border-color 0.2s;
-    }
-
-    .dest-block:hover {
-      border-color: var(--border);
-    }
-
-    .dest-block .dest-remove {
-      display: none;
-      cursor: pointer;
-      color: var(--error);
-      font-size: 0.8rem;
-      margin-left: 0.5rem;
-    }
-
-    .dest-block:hover .dest-remove {
-      display: inline;
-    }
-
-    /* Painel lateral */
-    .editor-sidebar {
-      width: 320px;
-      min-width: 320px;
-      background: var(--bg-card);
-      border-left: 1px solid var(--border);
-      padding: 1rem;
-      overflow-y: auto;
-      max-height: calc(100vh - 200px);
-      transition: width 0.3s, min-width 0.3s, padding 0.3s, opacity 0.3s;
-    }
-
-    .editor-sidebar.collapsed {
-      width: 0;
-      min-width: 0;
-      padding: 0;
-      overflow: hidden;
-      opacity: 0;
-      border: none;
-    }
-
-    .sidebar-section {
-      margin-bottom: 1.5rem;
-    }
-
-    .sidebar-section-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.75rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    .sidebar-add-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .sidebar-add-row select {
-      width: 100%;
-      font-size: 0.85rem;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-    }
-
-    .sidebar-add-row button {
-      width: 100%;
-    }
-
-    .sidebar-org-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem 0.6rem;
-      background: var(--border-light);
-      border-radius: 4px;
-      margin-bottom: 0.4rem;
-      font-size: 0.85rem;
-    }
-
-    .sidebar-org-item .org-remove {
-      cursor: pointer;
-      color: var(--error);
-      font-weight: 700;
-      padding: 0 4px;
-    }
-
-    .sidebar-org-item .org-remove:hover {
-      background: rgba(220,38,38,0.1);
-      border-radius: 3px;
-    }
-
-    .sidebar-assinatura-item {
-      padding: 0.5rem;
-      font-size: 0.85rem;
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    .sidebar-assinatura-item:last-child {
-      border-bottom: none;
-    }
-
-    .sidebar-ass-header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .sidebar-ass-header input[type="checkbox"] {
-      accent-color: var(--primary);
-      flex-shrink: 0;
-    }
-
-    .sidebar-assinatura-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .sidebar-ass-pages {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      margin-top: 0.35rem;
-      padding-left: 1.5rem;
-      flex-wrap: wrap;
-    }
-
-    .sidebar-ass-pages span.pages-label {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      margin-right: 0.15rem;
-    }
-
-    .page-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 22px;
-      font-size: 0.7rem;
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      background: #fff;
-      cursor: pointer;
-      color: var(--text-secondary);
-      user-select: none;
-      transition: all 0.15s;
-    }
-
-    .page-toggle.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-      font-weight: 600;
-    }
-
-    .page-toggle:hover {
-      border-color: var(--primary);
-    }
-
-    .btn-sidebar-toggle {
-      position: absolute;
-      right: 320px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 10;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-right: none;
-      border-radius: 4px 0 0 4px;
-      padding: 0.8rem 0.3rem;
-      cursor: pointer;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      transition: right 0.3s;
-    }
-
-    .btn-sidebar-toggle.collapsed {
-      right: 0;
-    }
-
-    /* Assinatura na folha */
-    .editor-a4-page .oficio-assinatura {
-      text-align: center;
-      margin: 2.5rem 0 1.5rem 0;
-    }
-
-    /* Live pages preview */
-    #livePagesContainer {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.5rem;
-      margin-top: 1.5rem;
-    }
-
-    .live-page-wrapper {
-      position: relative;
-    }
-
-    .live-page-label {
-      text-align: center;
-      font-size: 0.75rem;
-      color: #888;
-      margin-bottom: 0.3rem;
-      font-family: Arial, sans-serif;
-    }
-
-    .live-page {
-      background: #fff;
-      width: 210mm;
-      height: 297mm;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      overflow: hidden;
-      position: relative;
-      box-sizing: border-box;
-    }
-
-    .live-page > div {
-      transform-origin: top left;
-      width: 100%;
-      height: 100%;
-    }
-
-    .page-count-bar {
-      position: sticky;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--bg-card);
-      border-top: 1px solid var(--border);
-      padding: 0.4rem 1rem;
-      text-align: center;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      z-index: 10;
-    }
-
-    /* Responsivo */
-    @media (max-width: 900px) {
-      .editor-sidebar {
-        position: fixed;
-        right: 0;
-        top: 0;
-        height: 100vh;
-        z-index: 100;
-        box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-      }
-      .editor-sidebar.collapsed {
-        transform: translateX(100%);
-      }
-      .editor-a4-page {
-        width: 100%;
-        min-height: auto;
-      }
-      .btn-sidebar-toggle {
-        right: 0;
-      }
-    }
-
-    /* Modals */
     .modal {
       display: none;
       position: fixed;
@@ -1316,69 +653,77 @@
       color: var(--error);
     }
 
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+    }
+
+    .login-card {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      color: var(--text);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .login-btn {
+      background: #4285F4;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 1.5rem auto 0;
+      justify-content: center;
+    }
+
+    .login-btn:hover {
+      background: #357ae8;
+    }
+
+    #appContent {
+      display: none;
+    }
+
+    .user-info {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      display: none;
+      align-items: center;
+      gap: 1rem;
+      color: white;
+      font-size: 0.875rem;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+    }
+
     @media (max-width:768px) {
       .container {
-        padding: .25rem;
+        padding: 1rem;
       }
 
-      .app-layout {
-        flex-direction: column;
+      .header h1 {
+        font-size: 2rem;
       }
-
-      .sidebar {
-        width: 100%;
-        min-width: 100%;
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
-
-      .sidebar-brand {
-        width: 100%;
-        padding: 1rem 1.25rem;
-      }
-
-      .sidebar-brand h2 { font-size: 1rem; }
-      .sidebar-brand p { display: none; }
-
-      .sidebar-nav {
-        flex-direction: row;
-        padding: 0;
-        width: 100%;
-        overflow-x: auto;
-      }
-
-      .sidebar-nav .tab {
-        padding: .75rem 1rem;
-        border-left: none;
-        border-bottom: 3px solid transparent;
-        font-size: .85rem;
-        white-space: nowrap;
-        justify-content: center;
-        flex: 1;
-      }
-
-      .sidebar-nav .tab.active {
-        border-left-color: transparent;
-        border-bottom-color: #fff;
-      }
-
-      .sidebar-nav .tab:hover {
-        border-left-color: transparent;
-        border-bottom-color: rgba(255,255,255,.3);
-      }
-
-      .sidebar-user {
-        width: 100%;
-      }
-
-      .main-content {
-        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-        border-left: 1px solid var(--border);
-        max-height: none;
-      }
-
-      .main-content-inner { padding: 1.25rem; }
 
       .form-section {
         padding: 1.5rem;
@@ -1398,39 +743,32 @@
         background: #fff;
         font-family: Arial, sans-serif;
         -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
       }
 
-      .sidebar,
       .header,
       .button-group,
       .status-message,
       .editor-controls,
+      .tabs,
       .form-section,
       #tabelaHistoricoContainer,
       #searchHistorico {
         display: none !important;
       }
 
-      .app-layout {
+      .tabs-container {
         display: block !important;
+        border: none;
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
       }
 
-      .main-content {
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        max-height: none !important;
-        overflow: visible !important;
-      }
-
-      /* Hide all tabs by default in print */
       .tab-content {
         display: none !important;
         padding: 0;
       }
 
-      /* Only show the Generator tab */
       #gerador {
         display: block !important;
       }
@@ -1440,7 +778,6 @@
         margin: 0;
       }
 
-      /* Fix footer visibility in print */
       .oficio-footer {
         border-top: 1px solid #000 !important;
         color: #000 !important;
@@ -1466,285 +803,35 @@
         size: auto;
       }
     }
-
-    @page {
-      margin: 0;
-      size: auto;
-    }
-
-    /* Login Screen - Split Layout */
-    #loginScreen {
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-      display: flex;
-      flex-direction: row;
-    }
-
-    .login-brand {
-      flex: 1;
-      background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 4rem;
-      color: white;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .login-brand::before {
-      content: '';
-      position: absolute;
-      top: -30%;
-      right: -20%;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-
-    .login-brand::after {
-      content: '';
-      position: absolute;
-      bottom: -20%;
-      left: -10%;
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
-      border-radius: 50%;
-    }
-
-    .login-brand-content {
-      position: relative;
-      z-index: 1;
-      max-width: 480px;
-    }
-
-    .login-brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .login-brand-logo svg {
-      width: 40px;
-      height: 40px;
-    }
-
-    .login-brand-logo span {
-      font-size: 1.375rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .login-brand h2 {
-      font-size: 2.25rem;
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 1rem;
-      letter-spacing: -0.02em;
-    }
-
-    .login-brand p.brand-subtitle {
-      font-size: 1.05rem;
-      opacity: 0.9;
-      line-height: 1.6;
-      margin-bottom: 2.5rem;
-    }
-
-    .login-features {
-      display: flex;
-      flex-direction: column;
-      gap: 0.875rem;
-    }
-
-    .login-feature-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.95rem;
-      opacity: 0.92;
-    }
-
-    .login-feature-item svg {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      opacity: 0.85;
-    }
-
-    .login-form-side {
-      flex: 1;
-      background: #f8fafc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-
-    .login-card {
-      background: white;
-      padding: 2.5rem;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-      text-align: center;
-      color: var(--text);
-      max-width: 420px;
-      width: 100%;
-    }
-
-    .login-card h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #1e293b;
-      margin-bottom: 0.375rem;
-    }
-
-    .login-card .login-subtitle {
-      color: #64748b;
-      font-size: 0.95rem;
-      margin-bottom: 2rem;
-    }
-
-    .login-btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 0.875rem 1.75rem;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 0 auto;
-      justify-content: center;
-      width: 100%;
-      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.25);
-    }
-
-    .login-btn:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
-    }
-
-    .login-btn:active {
-      transform: translateY(0);
-    }
-
-    .login-footer {
-      margin-top: 2rem;
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
-
-    @media (max-width: 768px) {
-      #loginScreen {
-        flex-direction: column;
-      }
-      .login-brand {
-        flex: none;
-        padding: 2rem 1.5rem;
-        min-height: auto;
-      }
-      .login-brand h2 {
-        font-size: 1.5rem;
-      }
-      .login-features {
-        display: none;
-      }
-      .login-form-side {
-        flex: 1;
-        padding: 1.5rem;
-      }
-      .login-card {
-        padding: 2rem 1.5rem;
-      }
-    }
-
-    #appContent {
-      display: none;
-    }
-
-    .user-info {
-      display: none;
-    }
   </style>
 </head>
 
 <body>
   <div id="loginScreen">
-    <!-- Lado esquerdo - Branding -->
-    <div class="login-brand">
-      <div class="login-brand-content">
-        <div class="login-brand-logo">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="4" y="6" width="24" height="30" rx="2" stroke="white" stroke-width="2.5" fill="none"/>
-            <rect x="12" y="2" width="24" height="30" rx="2" stroke="white" stroke-width="2.5" fill="rgba(255,255,255,0.15)"/>
-            <line x1="17" y1="10" x2="31" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <line x1="17" y1="16" x2="28" y2="16" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <line x1="17" y1="22" x2="25" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <span>Sistema de Oficios</span>
-        </div>
-
-        <h2>Gerencie seus oficios de forma inteligente</h2>
-        <p class="brand-subtitle">Crie, organize e acompanhe oficios com controle de numeracao, historico completo e geracao de PDF.</p>
-
-        <div class="login-features">
-          <div class="login-feature-item">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-            Geracao automatica de PDF com formatacao oficial
-          </div>
-          <div class="login-feature-item">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-            Controle de numeracao e protocolos
-          </div>
-          <div class="login-feature-item">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-            Historico completo com armazenamento na nuvem
-          </div>
-        </div>
-      </div>
+    <div class="login-card">
+      <h1 style="color:var(--primary); margin-bottom:0.5rem; font-size:1.5rem;">Sistema de Ofícios</h1>
+      <p style="color:var(--text-light); margin-bottom:1.5rem;">Acesso Restrito</p>
+      <button class="login-btn" id="btnLoginGoogle">
+        <svg viewBox="0 0 18 18" width="18" height="18">
+          <path fill="#fff" d="M0 0h18v18H0z" />
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18h-2.908c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
+          <path d="M3.964 12.965A5.422 5.422 0 0 1 3.682 11c0-.693.12-1.353.332-1.996.025-.09.055-.178.083-.267H.957A8.996 8.996 0 0 0 0 11c0 1.386.333 2.686.917 3.865.013.025.027.05.04.075l3.007-1.975z" fill="#FBBC05" />
+          <path d="M9 3.88c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.938L3.964 6.95C4.672 4.814 6.656 3.23 9 3.23V3.88z" fill="#EA4335" />
+        </svg>
+        Entrar com Google
+      </button>
     </div>
-
-    <!-- Lado direito - Login -->
-    <div class="login-form-side">
-      <div class="login-card">
-        <h1>Bem-vindo de volta</h1>
-        <p class="login-subtitle">Entre com sua conta para acessar o sistema</p>
-        <button class="login-btn" id="btnLoginGoogle">
-          <svg viewBox="0 0 18 18" width="18" height="18">
-            <path fill="#fff" d="M0 0h18v18H0z" opacity="0"/>
-            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#fff"/>
-            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18h-2.908c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#fff"/>
-            <path d="M3.964 12.965A5.422 5.422 0 0 1 3.682 11c0-.693.12-1.353.332-1.996.025-.09.055-.178.083-.267H.957A8.996 8.996 0 0 0 0 11c0 1.386.333 2.686.917 3.865.013.025.027.05.04.075l3.007-1.975z" fill="#fff"/>
-            <path d="M9 3.88c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.938L3.964 6.95C4.672 4.814 6.656 3.23 9 3.23V3.88z" fill="#fff"/>
-          </svg>
-          Entrar com Google
-        </button>
-        <p class="login-footer">SCFC/Administracao &middot; Sistema Online</p>
-      </div>
-    </div>
+    <p style="margin-top:1rem; opacity:0.8; font-size:0.875rem;">☁️ Sistema Online</p>
   </div>
 
-  <!-- WRAPPER -->
   <div id="appContent">
-
     <div class="container">
-      <!-- Hidden legacy user-info -->
       <div class="user-info" id="userInfo">
         <span id="userEmail"></span>
-        <button id="btnLogout"
-          style="display:none;">Sair</button>
+        <button id="btnLogout" style="background:none; border:none; color:white; text-decoration:underline; cursor:pointer; font-weight:600;">Sair</button>
       </div>
 
-      <!-- Hidden legacy header -->
       <header class="header">
         <div class="header-content">
           <h1>Sistema de Ofícios SCFC</h1>
@@ -1755,207 +842,137 @@
 
       <div id="statusMessage" class="status-message"></div>
 
-      <div class="app-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-          <div class="sidebar-brand">
-            <h2>Ofícios SCFC</h2>
-            <p>Superintendência de Controle de Frotas e Combustível</p>
-          </div>
-
-          <nav class="sidebar-nav">
-            <button class="tab active" onclick="showTab('gerador', this)">
-              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span> Gerar Ofício
-            </button>
-            <button class="tab" onclick="showTab('historico', this)">
-              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Histórico
-            </button>
-            <button class="tab" onclick="showTab('orgaos', this)">
-              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg></span> Órgãos
-            </button>
-            <button class="tab" onclick="showTab('assinaturas', this)">
-              <span class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19.5c0 .5-.5 1-1 1s-1.5-.2-2-.8c-.5-.6-1.2-1.6-2-2.2-1-.7-2-1-3-1-2 0-3.5 1.5-5 3"/><path d="M2 17a5 5 0 0 1 7-4.5"/><path d="M15.5 5.5L18 3l3 3-2.5 2.5"/><path d="M18 3l-6.5 6.5"/></svg></span> Assinaturas
-            </button>
-          </nav>
-
-          <div class="sidebar-user">
-            <span class="sidebar-user-email" id="sidebarUserEmail"></span>
-            <button class="btn-logout" id="btnLogoutSidebar">Sair</button>
-          </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-          <div class="main-content-inner">
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab active" onclick="App.showTab('gerador', this)">📝 Gerar Ofício</button>
+          <button class="tab" onclick="App.showTab('historico', this)">📋 Histórico</button>
+          <button class="tab" onclick="App.showTab('orgaos', this)">🏢 Órgãos</button>
+        </div>
 
         <div id="gerador" class="tab-content active">
-          <!-- Toolbar fixa -->
-          <div class="editor-toolbar-fixed">
-            <div class="toolbar-group">
-              <button type="button" class="btn-tool" onclick="formatarTexto('bold')" title="Negrito"><b>N</b></button>
-              <button type="button" class="btn-tool" onclick="formatarTexto('italic')" title="Itálico"><i>I</i></button>
-            </div>
-            <div class="toolbar-divider"></div>
-            <div class="toolbar-group">
-              <button type="button" class="btn-tool" onclick="alinharTexto('left')" title="Esquerda">⬅</button>
-              <button type="button" class="btn-tool" onclick="alinharTexto('center')" title="Centro">↔</button>
-              <button type="button" class="btn-tool" onclick="alinharTexto('right')" title="Direita">➡</button>
-              <button type="button" class="btn-tool" onclick="alinharTexto('justify')" title="Justificar">☰</button>
-            </div>
-            <div class="toolbar-divider"></div>
-            <div class="toolbar-group">
-              <button type="button" class="btn-tool" onclick="inserirLista()" title="Lista">Lista</button>
-              <button type="button" class="btn-tool" onclick="abrirModalTabela()" title="Tabela">Tabela</button>
-              <button type="button" class="btn-tool" onclick="aplicarRecuo()" title="Aplicar/remover recuo 2,5cm no parágrafo">Recuo</button>
-              <button type="button" class="btn-tool" onclick="inserirTextoModelo()" title="Modelo">Modelo</button>
-            </div>
-            <div class="toolbar-divider"></div>
-            <div class="toolbar-group">
-              <button type="button" class="btn-tool" onclick="triggerHeaderUpload()" title="Carregar cabeçalho">Cabeçalho</button>
-              <button type="button" class="btn-tool" onclick="resetHeaderToUrl()" title="Usar URL padrão">URL</button>
-              <input id="headerFileInput" type="file" accept="image/*" style="display:none" />
-            </div>
-            <div class="toolbar-actions">
-              <button class="btn btn-sm btn-secondary" onclick="limparFormulario()">Limpar</button>
-              <button class="btn btn-sm btn-warning" onclick="imprimirOficio()">Imprimir</button>
-              <button class="btn btn-sm btn-success" onclick="gerarPDF()">PDF</button>
-              <button class="btn btn-sm btn-primary" onclick="gerarOficio()" id="btnGerarOficio">Salvar</button>
-              <button type="button" class="btn-tool" onclick="toggleSidebar()" id="btnToggleSidebar" title="Painel lateral">☰</button>
-            </div>
-          </div>
-
-          <!-- Workspace: folha + sidebar -->
-          <div class="editor-workspace">
-            <!-- Folha A4 central -->
-            <div class="editor-page-area">
-              <div class="editor-a4-page" id="editorPage">
-                <!-- Cabeçalho imagem -->
-                <div class="oficio-header" onclick="triggerHeaderUpload()" title="Clique para alterar cabeçalho">
-                  <img id="headerImg" alt="Cabeçalho" />
-                </div>
-
-                <!-- Corpo -->
-                <div class="oficio-body">
-                  <!-- Metadados inline -->
-                  <div class="oficio-meta-info">
-                    <div class="inline-field">
-                      <span class="label">OFÍCIO:</span>
-                      <input type="text" id="numeroOficio" class="inline-input" readonly />
-                    </div>
-                    <div class="inline-field" style="justify-content:flex-end;">
-                      <input type="text" id="dataOficio" class="inline-input inline-input-right" readonly style="max-width:280px;" />
-                    </div>
-
-                    <!-- Destinatários renderizados na folha -->
-                    <div id="previewDestinatariosContainer">
-                      <div class="inline-field dest-placeholder" id="destPlaceholder" style="color:#999; font-style:italic;">
-                        Adicione destinatários no painel lateral →
-                      </div>
-                    </div>
-
-                    <div class="inline-field">
-                      <span class="label">Assunto:</span>
-                      <input type="text" id="assuntoOficio" class="inline-input" placeholder="Digite o assunto..." maxlength="200" oninput="agendarLivePagination()" />
-                    </div>
-                    <div class="error-message" id="assuntoError">Digite o assunto do ofício</div>
-                  </div>
-
-                  <!-- Conteúdo editável -->
-                  <div class="oficio-content">
-                    <p class="no-indent"><strong>Prezado(a) Senhor(a),</strong></p>
-                    <div class="editor-content-area">
-                      <textarea id="textoOficio" style="width:100%;"></textarea>
-                    </div>
-                  </div>
-
-                  <!-- Assinaturas renderizadas -->
-                  <div class="oficio-assinatura" id="previewAssinaturas">
-                    <div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral →</div>
-                  </div>
-                </div>
-
-                <!-- Rodapé -->
-                <div class="oficio-footer">
-                  <div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div>
-                  <div class="footer-linha2">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>
-                </div>
+          <div class="form-section">
+            <h3 class="section-title">📋 Dados do Ofício</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Número do Ofício</label>
+                <input type="text" id="numeroOficio" class="form-input readonly" readonly>
               </div>
-
-              <!-- Preview de páginas ao vivo -->
-              <div id="livePagesContainer"></div>
-
-              <!-- Barra de contagem de páginas -->
-              <div class="page-count-bar" id="pageCountBar">Página 1 de 1</div>
-            </div>
-
-            <!-- Painel lateral direito -->
-            <div class="editor-sidebar" id="editorSidebar">
-              <div class="sidebar-section">
-                <div class="sidebar-section-title">Destinatários</div>
-                <div class="sidebar-add-row">
-                  <select id="orgaoDestinatario" class="form-select">
-                    <option value="">Selecione o destinatário...</option>
-                  </select>
-                  <button type="button" class="btn btn-primary btn-sm" onclick="adicionarOrgaoAoOficio()">Adicionar destinatário</button>
-                </div>
-                <div class="error-message" id="orgaoError">Adicione pelo menos um destinatário</div>
-                <div id="selectedOrgaosContainer"></div>
+              <div class="form-group">
+                <label class="form-label">Data</label>
+                <input type="text" id="dataOficio" class="form-input readonly" readonly>
               </div>
-
-              <div class="sidebar-section">
-                <div class="sidebar-section-title">Assinaturas</div>
-                <div id="assinaturasContainer" class="assinaturas-selection"></div>
-              </div>
-
-              <div class="sidebar-section">
-                <div class="sidebar-section-title">Local</div>
-                <input type="text" id="localOficio" value="Rondonópolis, MT" class="inline-input" readonly style="font-size:0.85rem;" />
+              <div class="form-group">
+                <label class="form-label">Local</label>
+                <input type="text" id="localOficio" value="Rondonópolis, MT" class="form-input readonly" readonly>
               </div>
             </div>
           </div>
 
-          <!-- Preview oculto para geração PDF (mantém estrutura original) -->
-          <div id="previewSection" class="preview-section" style="display:none;">
+          <div class="form-section">
+            <h3 class="section-title">🏢 Destinatário</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label required">Órgão Destinatário</label>
+                <select id="orgaoDestinatario" class="form-select" required>
+                  <option value="">Selecione um órgão...</option>
+                </select>
+                <div class="error-message" id="orgaoError">Selecione um órgão destinatário</div>
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label">Endereço</label>
+                <input type="text" id="enderecoOrgao" class="form-input readonly" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="section-title">📄 Conteúdo</h3>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label class="form-label required">Assunto</label>
+                <input type="text" id="assuntoOficio" class="form-input" placeholder="Digite o assunto..." maxlength="200" required>
+                <div class="error-message" id="assuntoError">Digite o assunto do ofício</div>
+              </div>
+
+              <div class="form-group full-width">
+                <label class="form-label required">Texto do Ofício</label>
+                <div class="editor-controls">
+                  <button type="button" class="btn-editor" onclick="App.triggerHeaderUpload()">🖼️ Carregar Cabeçalho</button>
+                  <button type="button" class="btn-editor" onclick="App.resetHeaderToUrl()">🌐 Usar URL</button>
+                  <button type="button" class="btn-editor" onclick="App.abrirModalTabela()">📊 Tabela</button>
+                  <button type="button" class="btn-editor" onclick="App.inserirLista()">📝 Lista</button>
+                  <button type="button" class="btn-editor" onclick="App.formatarTexto('bold')">Negrito</button>
+                  <button type="button" class="btn-editor" onclick="App.formatarTexto('italic')">Itálico</button>
+                  <button type="button" class="btn-editor" onclick="App.inserirTextoModelo()">📋 Modelo</button>
+                  <span class="align-label">Alinhar:</span>
+                  <div class="align-group">
+                    <button type="button" class="btn-editor" onclick="App.alinharTexto('left')">⬅️</button>
+                    <button type="button" class="btn-editor" onclick="App.alinharTexto('center')">↔️</button>
+                    <button type="button" class="btn-editor" onclick="App.alinharTexto('right')">➡️</button>
+                    <button type="button" class="btn-editor" onclick="App.alinharTexto('justify')">📄</button>
+                  </div>
+                  <input id="headerFileInput" type="file" accept="image/*" style="display:none" />
+                </div>
+                <textarea id="textoOficio" style="width:100%; min-height: 260px;"></textarea>
+                <div class="error-message" id="textoError">Digite o texto do ofício</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn btn-secondary" onclick="App.limparFormulario()">🗑️ Limpar Campos</button>
+            <button class="btn btn-primary" onclick="App.visualizarPrevia()">👁️ Visualizar Prévia</button>
+            <button class="btn btn-success" onclick="App.gerarOficio()">✅ Gerar Ofício</button>
+          </div>
+
+          <div id="previewSection" class="preview-section">
             <div class="preview-card" id="previewCard">
               <div class="oficio-header">
-                <img id="headerImgPdf" alt="Cabeçalho" />
+                <img id="headerImg" alt="Cabeçalho" />
               </div>
+
               <div class="oficio-body">
                 <div class="oficio-meta-info">
                   <div style="margin-bottom:0.25rem;"><strong id="previewNumeroHeader">OFÍCIO: ---</strong></div>
                   <div style="text-align:right; margin-bottom:1rem;"><span id="previewDataHeader">---</span></div>
-                  <div id="previewDestinatariosPdf"></div>
+                  <div class="oficio-para"><span class="label">Para:</span> <span id="previewPara">---</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span id="previewEndereco">---</span></div>
                   <div class="oficio-assunto"><span class="label">Assunto:</span> <span id="previewAssunto">---</span></div>
                 </div>
+
                 <div class="oficio-content">
                   <p class="no-indent"><strong>Prezado(a) Senhor(a),</strong></p>
                   <div id="previewTexto">---</div>
+                  <div id="previewAssinaturas" style="margin-top: 3rem;"></div>
                 </div>
-                <div class="oficio-assinatura" id="previewAssinaturasPdf"></div>
               </div>
+
               <div class="oficio-footer">
                 <div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div>
                 <div class="footer-linha2">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>
               </div>
+            </div>
+
+            <div class="button-group">
+              <button class="btn btn-secondary" onclick="App.editarOficio()">✏️ Editar</button>
+              <button class="btn btn-warning" onclick="App.imprimirOficio()">🖨️ Imprimir</button>
+              <button class="btn btn-success" onclick="App.gerarPDF()">📄 Baixar PDF</button>
             </div>
           </div>
         </div>
 
         <div id="historico" class="tab-content">
           <div style="margin-bottom:1.5rem;">
-            <input type="text" id="searchHistorico" placeholder="🔍 Buscar ofícios..." onkeyup="filtrarHistorico()"
-              style="width:100%; max-width:400px; padding:.75rem 1rem; border:2px solid var(--border); border-radius:var(--radius); font-size:1rem;">
+            <input type="text" id="searchHistorico" placeholder="🔍 Buscar ofícios..." onkeyup="App.filtrarHistorico()" style="width:100%; max-width:400px; padding:.75rem 1rem; border:2px solid var(--border); border-radius:var(--radius); font-size:1rem;">
           </div>
           <div id="tabelaHistoricoContainer">
-            <table class="data-table"
-              style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
+            <table class="data-table" style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
               <thead>
                 <tr style="background:var(--border-light)">
                   <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Número</th>
                   <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Data</th>
                   <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Protocolo</th>
-                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Destinatário
-                  </th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Destinatário</th>
                   <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Assunto</th>
                   <th style="padding:1rem; text-align:center; border-bottom:1px solid var(--border-light)">Ações</th>
                 </tr>
@@ -1967,16 +984,14 @@
 
         <div id="orgaos" class="tab-content">
           <div class="button-group" style="justify-content:flex-start; margin-bottom:1.5rem;">
-            <button class="btn btn-primary" onclick="adicionarOrgao()">➕ Adicionar Órgão</button>
+            <button class="btn btn-primary" onclick="App.adicionarOrgao()">➕ Adicionar Órgão</button>
           </div>
           <div id="tabelaOrgaosContainer">
-            <table class="data-table"
-              style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
+            <table class="data-table" style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
               <thead>
                 <tr style="background:var(--border-light)">
                   <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Código</th>
-                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Nome do Órgão
-                  </th>
+                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Nome do Órgão</th>
                   <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Endereço</th>
                   <th style="padding:1rem; text-align:center; border-bottom:1px solid var(--border-light)">Ações</th>
                 </tr>
@@ -1985,1232 +1000,542 @@
             </table>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div id="assinaturas" class="tab-content">
-          <div class="button-group" style="justify-content:flex-start; margin-bottom:1.5rem;">
-            <button class="btn btn-primary" onclick="adicionarAssinatura()">➕ Adicionar Assinatura</button>
-          </div>
-          <div id="tabelaAssinaturasContainer">
-            <table class="data-table"
-              style="width:100%; border-collapse:collapse; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm)">
-              <thead>
-                <tr style="background:var(--border-light)">
-                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Nome</th>
-                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Cargo</th>
-                  <th style="padding:1rem; text-align:left; border-bottom:1px solid var(--border-light)">Ordem</th>
-                  <th style="padding:1rem; text-align:center; border-bottom:1px solid var(--border-light)">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="assinaturasBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-          </div><!-- /main-content-inner -->
-        </main><!-- /main-content -->
-      </div><!-- /app-layout -->
-
+    <!-- Modals -->
     <div id="tabelaModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">📊 Inserir Tabela</h3><span class="close" onclick="fecharModalTabela()">&times;</span>
+          <h3 class="modal-title">📊 Inserir Tabela</h3>
+          <span class="close" onclick="App.fecharModalTabela()">&times;</span>
         </div>
-        <div style="margin-bottom:1rem;"><label class="form-label">Colunas:</label><input type="number" id="numColunas"
-            min="2" max="10" value="3" class="form-input"></div>
-        <div style="margin-bottom:2rem;"><label class="form-label">Linhas:</label><input type="number" id="numLinhas"
-            min="2" max="30" value="3" class="form-input"></div>
-        <div class="button-group"><button class="btn btn-secondary"
-            onclick="fecharModalTabela()">Cancelar</button><button class="btn btn-primary"
-            onclick="inserirTabelaVazia()">✅ Inserir</button></div>
+        <div style="margin-bottom:1rem;">
+          <label class="form-label">Colunas:</label>
+          <input type="number" id="numColunas" min="2" max="10" value="3" class="form-input">
+        </div>
+        <div style="margin-bottom:2rem;">
+          <label class="form-label">Linhas:</label>
+          <input type="number" id="numLinhas" min="2" max="30" value="3" class="form-input">
+        </div>
+        <div class="button-group">
+          <button class="btn btn-secondary" onclick="App.fecharModalTabela()">Cancelar</button>
+          <button class="btn btn-primary" onclick="App.inserirTabelaVazia()">✅ Inserir</button>
+        </div>
       </div>
     </div>
 
     <div id="orgaoModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title" id="orgaoModalTitle">Órgão</h3>
-          <span class="close" onclick="fecharModalOrgao()">&times;</span>
+          <h3 class="modal-title" id="orgaoModalTitle">🏢 Órgão</h3>
+          <span class="close" onclick="App.fecharModalOrgao()">&times;</span>
         </div>
         <input type="hidden" id="editOrgaoIndex">
         <div class="form-grid">
-          <div class="form-group"><label class="form-label required">Código:</label>
+          <div class="form-group">
+            <label class="form-label required">Código:</label>
             <input type="text" id="editCodigoOrgao" class="form-input" placeholder="Ex: 011">
           </div>
-          <div class="form-group full-width"><label class="form-label required">Nome do Órgão:</label>
+          <div class="form-group full-width">
+            <label class="form-label required">Nome do Órgão:</label>
             <input type="text" id="editNomeOrgao" class="form-input">
           </div>
-          <div class="form-group full-width"><label class="form-label required">Endereço:</label>
+          <div class="form-group full-width">
+            <label class="form-label required">Endereço:</label>
             <textarea id="editEnderecoOrgao" class="form-textarea" rows="3"></textarea>
           </div>
         </div>
         <div class="button-group">
-          <button class="btn btn-secondary" onclick="fecharModalOrgao()">Cancelar</button>
-          <button class="btn btn-success" onclick="salvarOrgao()">✅ Salvar</button>
+          <button class="btn btn-secondary" onclick="App.fecharModalOrgao()">Cancelar</button>
+          <button class="btn btn-success" onclick="App.salvarOrgao()">✅ Salvar</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <div id="assinaturaModal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title" id="assinaturaModalTitle">Assinatura</h3>
-          <span class="close" onclick="fecharModalAssinatura()">&times;</span>
-        </div>
-        <input type="hidden" id="editAssinaturaId">
-        <div class="form-grid">
-          <div class="form-group full-width"><label class="form-label required">Nome Completo:</label>
-            <input type="text" id="editNomeAssinatura" class="form-input">
-          </div>
-          <div class="form-group full-width"><label class="form-label required">Cargo/Função:</label>
-            <input type="text" id="editCargoAssinatura" class="form-input">
-          </div>
-          <div class="form-group"><label class="form-label">Ordem de Exibição:</label>
-            <input type="number" id="editOrdemAssinatura" class="form-input">
-          </div>
-        </div>
-        <div class="button-group">
-          <button class="btn btn-secondary" onclick="fecharModalAssinatura()">Cancelar</button>
-          <button class="btn btn-success" onclick="salvarAssinatura()">✅ Salvar</button>
-        </div>
-      </div>
-    </div>
+  <script>
+    // ==========================================
+    // APLICAÇÃO REFATORADA E MODULARIZADA
+    // ==========================================
 
-    </div><!-- /container -->
-  </div><!-- /appContent -->
+    const App = (function() {
+      // CONSTANTES
+      const HEADER_URL_DEFAULT = "logo_cabecalho.png";
+      const STORAGE_HEADER = "sistemaoficios_header_datauri_v1";
+      
+      // ESTADO DA APLICAÇÃO
+      let proximoNumero = 1;
+      let historico = [];
+      let orgaos = [];
 
-      <script>
-        // --- VARIABLES ---
-        const HEADER_URL_DEFAULT = "https://advantagemidia.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-15-at-10.31.14.jpeg";
-        const STORAGE_KEY = null; // Deprecated
-        const STORAGE_HEADER = "sistemaoficios_header_datauri_v1";
-
-        let proximoNumero = 1;
-        let historico = [];
-        let orgaos = [];
-        let assinaturas = [];
-        let _assinaturasPdfOverride = null; // Temporário para PDF do histórico
-        let selectedOrgaosList = [];
-
-        // --- INITIALIZATION ---
-        document.addEventListener("DOMContentLoaded", () => {
-          // Data loading is triggered by Firebase Auth State
-          inicializarEditorTiny();
-          initHeaderUpload();
-          applyHeaderSource();
-        });
-
-        // --- FIREBASE DATA HANDLING ---
-        window.carregarDadosOnline = async function () {
+      // MÓDULO: Storage Seguro
+      const Storage = {
+        get: (key) => {
           try {
-            const { collection, getDocs, doc, getDoc, setDoc, query, orderBy } = window.firestore;
+            return localStorage.getItem(key);
+          } catch {
+            return null;
+          }
+        },
+        set: (key, value) => {
+          try {
+            localStorage.setItem(key, value);
+          } catch (e) {
+            console.warn('Storage não disponível:', e);
+          }
+        }
+      };
+
+      // MÓDULO: UI
+      const UI = {
+        showMessage: (msg, type) => {
+          const el = document.getElementById('statusMessage');
+          if (el) {
+            el.className = `status-message status-${type} show`;
+            el.textContent = msg;
+            setTimeout(() => el.classList.remove('show'), 4000);
+          } else {
+            alert(msg);
+          }
+        },
+        
+        showError: (elementId, show = true) => {
+          const el = document.getElementById(elementId);
+          if (el) el.style.display = show ? 'block' : 'none';
+        },
+
+        updateField: (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.value = value || '';
+        },
+
+        getFieldValue: (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : '';
+        }
+      };
+
+      // MÓDULO: Editor TinyMCE
+      const Editor = {
+        init: () => {
+          tinymce.init({
+            selector: '#textoOficio',
+            height: 320,
+            menubar: false,
+            branding: false,
+            statusbar: false,
+            plugins: 'lists table autoresize',
+            toolbar: 'bold italic | bullist numlist | alignleft aligncenter alignright alignjustify | table',
+            content_style: `
+              body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.5;color:#000;text-align:justify;}
+              p { margin:0 0 1em 0; text-indent:2.5cm !important; text-align:justify; line-height:1.5; }
+              p:first-child{ text-indent:0 !important; }
+              table{width:100%;border-collapse:collapse;margin:12px 0;}
+              th,td{border:1px solid #000;padding:8px 12px;}
+              th{background:#f0f0f0;font-weight:700;text-align:center;}
+            `,
+            setup: (ed) => {
+              ed.on('init', () => ed.setContent('<p>Venho através deste </p>'));
+            }
+          });
+        },
+
+        getContent: () => tinymce.get('textoOficio')?.getContent() || '',
+        
+        getPlainText: () => tinymce.get('textoOficio')?.getContent({ format: 'text' }) || '',
+        
+        setContent: (html) => tinymce.get('textoOficio')?.setContent(html),
+        
+        execCommand: (cmd, value) => tinymce.get('textoOficio')?.execCommand(cmd, false, value)
+      };
+
+      // MÓDULO: Firebase
+      const Firebase = {
+        async loadData() {
+          try {
+            const { collection, doc, getDoc, setDoc, query, orderBy, onSnapshot } = window.firestore;
             const db = window.db;
 
-            console.log("Iniciando carregamento de dados...");
-
-            // 1. ORGANS
+            // Carregar Órgãos
             const orgRef = doc(db, "settings", "orgaos");
             const orgSnap = await getDoc(orgRef);
             if (orgSnap.exists()) {
               orgaos = orgSnap.data().list || [];
             } else {
-              // First time defaults
-              orgaos = [
-                { codigo: '001', nome: 'SECRETARIA MUNICIPAL DE GOVERNO', endereco: 'Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
-                { codigo: '002', nome: 'PROCURADORIA GERAL DO MUNICÍPIO', endereco: 'Rua Barão do Rio Branco, 1500, Centro, Rondonópolis - MT, CEP 78700-050' },
-                { codigo: '003', nome: 'PROCON', endereco: 'Avenida Presidente Dutra, 500, Centro, Rondonópolis - MT, CEP 78700-000' },
-                { codigo: '004', nome: 'SECRETARIA MUNICIPAL DE RECEITA', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
-                { codigo: '005', nome: 'SECRETARIA MUNICIPAL DE EDUCAÇÃO', endereco: 'Rua Barão do Rio Branco, 2020, Centro, Rondonópolis - MT, CEP 78700-050' },
-                { codigo: '006', nome: 'SECRETARIA MUNICIPAL DE TRANSPORTE E TRÂNSITO', endereco: 'Avenida Fernando Corrêa da Costa, 1000, Boa Vista, Rondonópolis - MT, CEP 78705-040' },
-                { codigo: '007', nome: 'SECRETARIA MUNICIPAL DE DESENVOLVIMENTO ECONÔMICO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
-                { codigo: '008', nome: 'SECRETARIA MUNICIPAL DE PROMOÇÃO E ASSISTÊNCIA SOCIAL', endereco: 'Rua Otávio Pitaluga, 1357, Centro, Rondonópolis - MT, CEP 78700-000' },
-                { codigo: '009', nome: 'SECRETARIA MUNICIPAL DE SAÚDE', endereco: 'Rua Prudente de Morais, 800, Centro, Rondonópolis - MT, CEP 78700-000' },
-                { codigo: '010', nome: 'SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' }
-              ];
+              orgaos = this.getDefaultOrgaos();
               await setDoc(orgRef, { list: orgaos });
             }
-            atualizarTabelaOrgaos();
-            carregarOrgaos();
 
-            // 2. SIGNATURES
-            const assRef = doc(db, "settings", "assinaturas");
-            const assSnap = await getDoc(assRef);
-            if (assSnap.exists()) {
-              assinaturas = assSnap.data().list || [];
-            } else {
-              assinaturas = [
-                { id: 1, nome: 'Jhonatan Fernandes Gomes', cargo: 'Superintendência de Controle de Frotas e Combustível', ordem: 1 },
-                { id: 2, nome: 'Luciano Rodrigues', cargo: 'Secretário Municipal de Administração, Gestão de Pessoas e Inovação', ordem: 2 }
-              ];
-              await setDoc(assRef, { list: assinaturas });
-            }
-            atualizarTabelaAssinaturas();
-            carregarAssinaturasSelecao();
-
-            // 3. HISTORY (Realtime)
+            // Carregar Histórico (Realtime)
             const q = query(collection(db, "oficios"), orderBy("id", "desc"));
-            window.firestore.onSnapshot(q, (snapshot) => {
+            onSnapshot(q, (snapshot) => {
               historico = [];
               let maxNum = 0;
               const currentYear = new Date().getFullYear();
 
-              snapshot.forEach((doc) => {
-                const data = doc.data();
-                data._docId = doc.id;
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                data._docId = docSnap.id;
                 historico.push(data);
 
-                // Calculate next number: check if this oficio is from current year
                 if (data.numero && data.numero.includes(`/${currentYear}/`)) {
                   const parts = data.numero.split('/');
                   const n = parseInt(parts[0]);
                   if (!isNaN(n) && n > maxNum) maxNum = n;
                 }
               });
+
               proximoNumero = maxNum + 1;
-              atualizarCamposAutomaticos();
-              atualizarTabelaHistorico();
-              console.log("Histórico sincronizado.");
+              Forms.updateAutoFields();
+              Tables.updateHistorico();
             });
 
-            atualizarCamposAutomaticos();
-            mostrarMensagem("Dados sincronizados com sucesso!", "success");
-
+            Tables.updateOrgaos();
+            Forms.loadOrgaos();
+            Forms.updateAutoFields();
+            
+            UI.showMessage("Dados sincronizados com sucesso!", "success");
           } catch (e) {
-            console.error("Erro carregando dados:", e);
-            mostrarMensagem("Erro ao carregar dados.", "error");
+            console.error("Erro ao carregar dados:", e);
+            UI.showMessage("Erro ao carregar dados.", "error");
           }
-        };
+        },
 
-        // --- PERSISTENCE HELPERS ---
-        async function salvarSettings(type) {
+        async saveSettings(type) {
           const { doc, setDoc } = window.firestore;
           const db = window.db;
-          if (type === 'orgaos') await setDoc(doc(db, "settings", "orgaos"), { list: orgaos });
-          if (type === 'assinaturas') await setDoc(doc(db, "settings", "assinaturas"), { list: assinaturas });
+          
+          if (type === 'orgaos') {
+            await setDoc(doc(db, "settings", "orgaos"), { list: orgaos });
+          }
+        },
+
+        async saveOficio(data) {
+          const { addDoc, collection } = window.firestore;
+          const db = window.db;
+          return await addDoc(collection(db, "oficios"), data);
+        },
+
+        async updateOficio(docId, data) {
+          const { updateDoc, doc } = window.firestore;
+          const db = window.db;
+          await updateDoc(doc(db, "oficios", docId), data);
+        },
+
+        async deleteOficio(docId) {
+          const { deleteDoc, doc } = window.firestore;
+          const db = window.db;
+          await deleteDoc(doc(db, "oficios", docId));
+        },
+
+        async updateProtocolo(docId, protocolo) {
+          const { updateDoc, doc } = window.firestore;
+          const db = window.db;
+          await updateDoc(doc(db, "oficios", docId), { protocolo });
+        },
+
+        getDefaultOrgaos() {
+          return [
+            { codigo: '001', nome: 'SECRETARIA MUNICIPAL DE GOVERNO', endereco: 'Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
+            { codigo: '002', nome: 'PROCURADORIA GERAL DO MUNICÍPIO', endereco: 'Rua Barão do Rio Branco, 1500, Centro, Rondonópolis - MT, CEP 78700-050' },
+            { codigo: '003', nome: 'PROCON', endereco: 'Avenida Presidente Dutra, 500, Centro, Rondonópolis - MT, CEP 78700-000' },
+            { codigo: '004', nome: 'SECRETARIA MUNICIPAL DE RECEITA', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
+            { codigo: '005', nome: 'SECRETARIA MUNICIPAL DE EDUCAÇÃO', endereco: 'Rua Barão do Rio Branco, 2020, Centro, Rondonópolis - MT, CEP 78700-050' },
+            { codigo: '006', nome: 'SECRETARIA MUNICIPAL DE TRANSPORTE E TRÂNSITO', endereco: 'Avenida Fernando Corrêa da Costa, 1000, Boa Vista, Rondonópolis - MT, CEP 78705-040' },
+            { codigo: '007', nome: 'SECRETARIA MUNICIPAL DE DESENVOLVIMENTO ECONÔMICO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
+            { codigo: '008', nome: 'SECRETARIA MUNICIPAL DE PROMOÇÃO E ASSISTÊNCIA SOCIAL', endereco: 'Rua Otávio Pitaluga, 1357, Centro, Rondonópolis - MT, CEP 78700-000' },
+            { codigo: '009', nome: 'SECRETARIA MUNICIPAL DE SAÚDE', endereco: 'Rua Prudente de Morais, 800, Centro, Rondonópolis - MT, CEP 78700-000' },
+            { codigo: '010', nome: 'SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' }
+          ];
         }
+      };
 
-        // Placeholder for old calls (deprecated)
-        function salvarDados() { }
-        function carregarDados() { }
+      // MÓDULO: Formulários
+      const Forms = {
+        updateAutoFields() {
+          const d = new Date();
+          const year = d.getFullYear();
+          const numero = `${String(proximoNumero).padStart(3, '0')}/${year}/SCFC/ADMINISTRAÇÃO`;
+          
+          UI.updateField('numeroOficio', numero);
+          
+          const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+          const data = `${String(d.getDate()).padStart(2, '0')} de ${meses[d.getMonth()]} de ${year}`;
+          
+          UI.updateField('dataOficio', data);
+        },
 
-        // --- LOCAL STORAGE (HEADER ONLY) ---
-        const safeStorage = (() => {
-          const mem = {};
-          function hasLS() { try { const k = "__t__"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch (e) { return false; } }
-          const useLS = hasLS();
-          return {
-            get: (k) => useLS ? localStorage.getItem(k) : (mem[k] ?? null),
-            set: (k, v) => { if (useLS) localStorage.setItem(k, v); else mem[k] = v; }
-          };
-        })();
+        loadOrgaos() {
+          const select = document.getElementById('orgaoDestinatario');
+          if (!select) return;
+          
+          select.innerHTML = '<option value="">Selecione um órgão...</option>';
+          orgaos.forEach(o => {
+            const option = document.createElement('option');
+            option.value = o.codigo;
+            option.textContent = `${o.codigo} - ${o.nome}`;
+            select.appendChild(option);
+          });
+        },
 
+        fillOrgaoEndereco() {
+          const codigo = UI.getFieldValue('orgaoDestinatario');
+          const orgao = orgaos.find(o => o.codigo === codigo);
+          UI.updateField('enderecoOrgao', orgao ? orgao.endereco : '');
+        },
 
-        /* ===== UI & HELPERS ===== */
+        validate() {
+          let isValid = true;
 
-        function initHeaderUpload() {
-          const input = document.getElementById("headerFileInput");
+          if (!UI.getFieldValue('orgaoDestinatario')) {
+            UI.showError('orgaoError', true);
+            isValid = false;
+          } else {
+            UI.showError('orgaoError', false);
+          }
+
+          if (!UI.getFieldValue('assuntoOficio')) {
+            UI.showError('assuntoError', true);
+            isValid = false;
+          } else {
+            UI.showError('assuntoError', false);
+          }
+
+          if (!Editor.getPlainText().trim()) {
+            UI.showError('textoError', true);
+            isValid = false;
+          } else {
+            UI.showError('textoError', false);
+          }
+
+          return isValid;
+        },
+
+        clear() {
+          UI.updateField('assuntoOficio', '');
+          Editor.setContent('<p>Venho através deste </p>');
+          UI.updateField('orgaoDestinatario', '');
+          UI.updateField('enderecoOrgao', '');
+          this.updateAutoFields();
+        },
+
+        loadFromHistorico(oficio) {
+          UI.updateField('numeroOficio', oficio.numero);
+          if (oficio.dataCompleta) UI.updateField('dataOficio', oficio.dataCompleta);
+          UI.updateField('assuntoOficio', oficio.assunto);
+          Editor.setContent(oficio.texto);
+
+          const orgao = orgaos.find(o => o.nome === oficio.destinatario);
+          if (orgao) {
+            UI.updateField('orgaoDestinatario', orgao.codigo);
+            this.fillOrgaoEndereco();
+          }
+        }
+      };
+
+      // MÓDULO: Tabelas
+      const Tables = {
+        updateHistorico() {
+          const tbody = document.getElementById('historicoBody');
+          if (!tbody) return;
+
+          if (!historico.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem">📭 Nenhum ofício registrado</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = historico.map((o, i) => {
+            const protoHtml = o.protocolo
+              ? `<span style="font-weight:600;color:var(--primary);cursor:pointer;" onclick="App.lancarProtocolo(${i})" title="Editar Protocolo">${o.protocolo}</span>`
+              : `<button class="btn btn-sm btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="App.lancarProtocolo(${i})">Lançar</button>`;
+
+            return `
+              <tr>
+                <td>${o.numero}</td>
+                <td>${o.data}</td>
+                <td>${protoHtml}</td>
+                <td>${o.destinatario}</td>
+                <td>${o.assunto}</td>
+                <td>
+                  <div style="display:flex;gap:0.5rem;justify-content:center;">
+                    <button class="btn btn-sm btn-success" onclick="App.gerarPDF(${i})" title="Baixar PDF">📄</button>
+                    <button class="btn btn-sm btn-primary" onclick="App.editarHistorico(${i})" title="Carregar">✏️</button>
+                    <button class="btn btn-sm btn-warning" onclick="App.excluirHistorico(${i})" title="Excluir">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        },
+
+        updateOrgaos() {
+          const tbody = document.getElementById('orgaosBody');
+          if (!tbody) return;
+
+          tbody.innerHTML = orgaos.map((o, i) => `
+            <tr>
+              <td>${o.codigo}</td>
+              <td>${o.nome}</td>
+              <td>${o.endereco}</td>
+              <td style="text-align:center;">
+                <button class="btn-editor" style="background:#f59e0b; margin-right:5px;" onclick="App.editarOrgao(${i})">✏️</button>
+                <button class="btn-editor" style="background:#dc2626;" onclick="App.excluirOrgao(${i})">🗑️</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      };
+
+      // MÓDULO: Header/Imagem
+      const Header = {
+        init() {
+          const input = document.getElementById('headerFileInput');
           if (!input) return;
-          input.addEventListener("change", (ev) => {
-            const file = ev.target.files && ev.target.files[0];
+
+          input.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
             if (!file) return;
+
+            if (file.size > 2000000) {
+              UI.showMessage('⚠️ Imagem muito grande. Use arquivos menores que 2MB.', 'warning');
+              return;
+            }
+
             const reader = new FileReader();
             reader.onload = () => {
-              safeStorage.set(STORAGE_HEADER, reader.result);
-              applyHeaderSource();
-              mostrarMensagem("✅ Cabeçalho salvo!", "success");
+              Storage.set(STORAGE_HEADER, reader.result);
+              this.apply();
+              UI.showMessage('✅ Cabeçalho salvo!', 'success');
             };
             reader.readAsDataURL(file);
           });
-        }
+        },
 
-        function triggerHeaderUpload() { document.getElementById("headerFileInput").click(); }
-        function resetHeaderToUrl() {
-          safeStorage.set(STORAGE_HEADER, "");
-          applyHeaderSource();
-          mostrarMensagem("Usando imagem padrão.", "warning");
-        }
-
-        function applyHeaderSource() {
-          const img = document.getElementById("headerImg");
+        apply() {
+          const img = document.getElementById('headerImg');
           if (!img) return;
 
-          // Check for a one-time force reset to ensure new URL is picked up
-          const RESET_FLAG = "reset_header_2026_01_15";
-          if (!safeStorage.get(RESET_FLAG)) {
-            safeStorage.set(STORAGE_HEADER, "");
-            safeStorage.set(RESET_FLAG, "done");
-          }
-
-          const dataUri = safeStorage.get(STORAGE_HEADER);
-          if (dataUri && dataUri.startsWith("data:image")) {
-            img.removeAttribute("crossOrigin");
+          const dataUri = Storage.get(STORAGE_HEADER);
+          if (dataUri && dataUri.startsWith('data:image')) {
+            img.removeAttribute('crossOrigin');
             img.src = dataUri;
           } else {
-            // Default image (Remote or Local)
-            // REMOVED crossOrigin="anonymous" because the server advantagemidia.com DOES NOT support CORS.
-            // This allows the image to show in the browser, though it may still affect PDF/Print stability.
-            img.removeAttribute("crossOrigin");
-            img.src = HEADER_URL_DEFAULT + "?v=" + Date.now();
-          }
-        }
-
-        function inicializarEditorTiny() {
-          tinymce.init({
-            selector: '#textoOficio',
-            height: 320,
-            menubar: false, branding: false, statusbar: false,
-            plugins: 'lists table autoresize',
-            toolbar: 'bold italic | bullist numlist | alignleft aligncenter alignright alignjustify | recuo | table',
-            content_style: `body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.5;color:#000;text-align:justify;}
-          p { margin:0; text-align:justify; line-height:1.5; }
-          p.indent { text-indent:2.5cm !important; }
-          table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10pt;}
-          th,td{border:1px solid #000;padding:8px 12px;}
-          th{background:#f0f0f0;font-weight:700;text-align:center;}`,
-            setup: (ed) => {
-              ed.on('init', () => {
-                ed.setContent('<p>Venho através deste </p>');
-                setTimeout(agendarLivePagination, 1000);
-              });
-              ed.on('input change keyup', agendarLivePagination);
-              ed.ui.registry.addButton('recuo', {
-                text: '¶→',
-                tooltip: 'Aplicar/remover recuo 2,5cm',
-                onAction: () => {
-                  const node = ed.selection.getNode();
-                  const p = node.closest ? node.closest('p') : (node.tagName === 'P' ? node : null);
-                  if (p) {
-                    p.classList.toggle('indent');
-                  }
-                }
-              });
-            }
-          });
-        }
-
-        function showTab(tabName, btn) {
-          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-          if (btn) btn.classList.add('active');
-          else {
-            const tBtn = Array.from(document.querySelectorAll('.tab')).find(b => b.textContent.toLowerCase().includes(tabName));
-            if (tBtn) tBtn.classList.add('active');
-          }
-          document.getElementById(tabName).classList.add('active');
-          if (tabName === 'historico') atualizarTabelaHistorico();
-          if (tabName === 'orgaos') atualizarTabelaOrgaos();
-          if (tabName === 'assinaturas') atualizarTabelaAssinaturas();
-        }
-
-        function atualizarCamposAutomaticos() {
-          const d = new Date();
-          document.getElementById('numeroOficio').value = `${String(proximoNumero).padStart(3, '0')}/${d.getFullYear()}/SCFC/ADMINISTRAÇÃO`;
-          const m = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-          document.getElementById('dataOficio').value = `${String(d.getDate()).padStart(2, '0')} de ${m[d.getMonth()]} de ${d.getFullYear()}`;
-        }
-
-        function limparFormulario() {
-          document.getElementById('assuntoOficio').value = "";
-          tinymce.get('textoOficio')?.setContent('<p>Venho através deste </p>');
-          document.getElementById('orgaoDestinatario').value = "";
-          selectedOrgaosList = [];
-          renderSelectedOrgaos();
-          atualizarCamposAutomaticos();
-        }
-
-        /* Editor/Tabela */
-        function abrirModalTabela() { document.getElementById('tabelaModal').style.display = 'block'; }
-        function fecharModalTabela() { document.getElementById('tabelaModal').style.display = 'none'; }
-        function inserirTabelaVazia() {
-          const c = document.getElementById('numColunas').value, r = document.getElementById('numLinhas').value, ed = tinymce.get('textoOficio');
-          if (ed) ed.execCommand('mceInsertTable', false, { rows: r, columns: c });
-          fecharModalTabela();
-        }
-        function inserirLista() { tinymce.get('textoOficio')?.execCommand('InsertUnorderedList'); }
-        function formatarTexto(t) { tinymce.get('textoOficio')?.execCommand(t === 'bold' ? 'Bold' : 'Italic'); }
-        function alinharTexto(t) { tinymce.get('textoOficio')?.execCommand(t === 'justify' ? 'JustifyFull' : 'Justify' + t.charAt(0).toUpperCase() + t.slice(1)); }
-        function aplicarRecuo() {
-          const ed = tinymce.get('textoOficio');
-          if (!ed) return;
-          const node = ed.selection.getNode();
-          const p = node.closest ? node.closest('p') : (node.tagName === 'P' ? node : null);
-          if (p) p.classList.toggle('indent');
-        }
-        function inserirTextoModelo() { tinymce.get('textoOficio')?.setContent(`<p>Na oportunidade de cumprimentá-lo(a), venho por meio deste informar que:</p><p>&nbsp;</p><p>Para tanto, solicito que sejam tomadas as devidas providências.</p>`); }
-        function getTextoHTML() { return tinymce.get('textoOficio')?.getContent() || ''; }
-        function getTextoPlain() { return tinymce.get('textoOficio')?.getContent({ format: 'text' }) || ''; }
-
-        /* ===== LIVE PAGINATION ===== */
-        let _livePaginationTimer = null;
-        function agendarLivePagination() {
-          if (_livePaginationTimer) clearTimeout(_livePaginationTimer);
-          _livePaginationTimer = setTimeout(executarLivePagination, 600);
-        }
-
-        function executarLivePagination() {
-          try {
-            const headerImgEl = document.getElementById('headerImg');
-            const headerSrc = headerImgEl ? (headerImgEl.src || '') : '';
-            if (!headerSrc) return;
-
-            // Tornar preview acessível temporariamente
-            const previewSec = document.getElementById('previewSection');
-            const wasHidden = previewSec && previewSec.style.display === 'none';
-            if (wasHidden) {
-              previewSec.style.visibility = 'hidden';
-              previewSec.style.position = 'absolute';
-              previewSec.style.left = '-9999px';
-              previewSec.style.display = 'block';
-            }
-
-            popularPreviewPdf();
-
-            const root = document.createElement('div');
-            root.style.position = 'fixed';
-            root.style.left = '0';
-            root.style.top = '0';
-            root.style.width = '210mm';
-            root.style.opacity = '0';
-            root.style.pointerEvents = 'none';
-            root.style.zIndex = '-1';
-            root.style.background = '#fff';
-            document.body.appendChild(root);
-
-            const pages = paginateIntoPagesFixed(root, headerSrc);
-            const container = document.getElementById('livePagesContainer');
-            const countBar = document.getElementById('pageCountBar');
-
-            container.innerHTML = '';
-            pages.forEach((pageEl, i) => {
-              const wrapper = document.createElement('div');
-              wrapper.className = 'live-page-wrapper';
-
-              const label = document.createElement('div');
-              label.className = 'live-page-label';
-              label.textContent = `Página ${i + 1} de ${pages.length}`;
-
-              const lp = document.createElement('div');
-              lp.className = 'live-page';
-              lp.appendChild(pageEl.cloneNode(true));
-
-              wrapper.appendChild(label);
-              wrapper.appendChild(lp);
-              container.appendChild(wrapper);
-            });
-
-            if (countBar) countBar.textContent = `${pages.length} página${pages.length > 1 ? 's' : ''}`;
-
-            root.remove();
-
-            // Restaurar preview
-            if (wasHidden) {
-              previewSec.style.display = 'none';
-              previewSec.style.visibility = '';
-              previewSec.style.position = '';
-              previewSec.style.left = '';
-            }
-          } catch (e) {
-            console.warn('Live pagination error:', e);
-          }
-        }
-
-        /* Orgãos/Assinaturas */
-        function carregarOrgaos() {
-          const s = document.getElementById('orgaoDestinatario');
-          s.innerHTML = '<option value="">Selecione...</option>';
-          orgaos.sort((a, b) => a.nome.localeCompare(b.nome)).forEach(o => {
-            const op = document.createElement('option');
-            op.value = o.codigo;
-            op.textContent = o.codigo + ' - ' + o.nome;
-            s.appendChild(op);
-          });
-        }
-
-        function adicionarOrgaoAoOficio() {
-          const select = document.getElementById('orgaoDestinatario');
-          const codigo = select.value;
-          if (!codigo) {
-            mostrarMensagem("Selecione um órgão para adicionar.", "warning");
-            return;
-          }
-
-          if (selectedOrgaosList.find(o => o.codigo === codigo)) {
-            mostrarMensagem("Este órgão já foi adicionado.", "warning");
-            return;
-          }
-
-          const org = orgaos.find(o => o.codigo === codigo);
-          if (org) {
-            selectedOrgaosList.push({ ...org });
-            renderSelectedOrgaos();
-            select.value = "";
-          }
-        }
-
-        function removerOrgaoDoOficio(codigo) {
-          selectedOrgaosList = selectedOrgaosList.filter(o => o.codigo !== codigo);
-          renderSelectedOrgaos();
-        }
-
-        function renderSelectedOrgaos() {
-          // Sidebar list
-          const container = document.getElementById('selectedOrgaosContainer');
-          if (container) {
-            if (selectedOrgaosList.length === 0) {
-              container.innerHTML = '';
+            if (HEADER_URL_DEFAULT.startsWith('http')) {
+              img.crossOrigin = 'anonymous';
             } else {
-              container.innerHTML = selectedOrgaosList.map(o => `
-                <div class="sidebar-org-item">
-                  <span>${o.nome}</span>
-                  <span class="org-remove" onclick="removerOrgaoDoOficio('${o.codigo}')">✕</span>
-                </div>
-              `).join('');
+              img.removeAttribute('crossOrigin');
             }
+            img.src = HEADER_URL_DEFAULT;
           }
-          // Atualizar folha A4
-          renderDestinatariosNaFolha();
-        }
+        },
 
-        function renderDestinatariosNaFolha() {
-          const container = document.getElementById('previewDestinatariosContainer');
-          if (!container) return;
-          const placeholder = document.getElementById('destPlaceholder');
+        reset() {
+          Storage.set(STORAGE_HEADER, '');
+          this.apply();
+          UI.showMessage('🌐 Usando URL padrão.', 'warning');
+        },
 
-          if (selectedOrgaosList.length === 0) {
-            container.innerHTML = '<div class="inline-field dest-placeholder" id="destPlaceholder" style="color:#999; font-style:italic;">Adicione destinatários no painel lateral →</div>';
-            return;
-          }
+        async toDataURL() {
+          const img = document.getElementById('headerImg');
+          if (!img) return null;
 
-          container.innerHTML = selectedOrgaosList.map(org => `
-            <div class="dest-block">
-              <div class="inline-field"><span class="label">Para:</span> <span class="inline-field-value">${org.nome}</span><span class="dest-remove" onclick="removerOrgaoDoOficio('${org.codigo}')">✕</span></div>
-              <div class="inline-field"><span class="label">Endereço:</span> <span class="inline-field-value">${org.endereco}</span></div>
-            </div>
-          `).join('');
-          agendarLivePagination();
-        }
-
-        function toggleSidebar() {
-          const sidebar = document.getElementById('editorSidebar');
-          const btn = document.getElementById('btnToggleSidebar');
-          sidebar.classList.toggle('collapsed');
-          btn.classList.toggle('active');
-        }
-
-        function atualizarAssinaturasNaFolha() {
-          const selecionadas = obterAssinaturasSelecionadas();
-          const container = document.getElementById('previewAssinaturas');
-          if (!container) return;
-
-          if (selecionadas.length === 0) {
-            container.innerHTML = '<div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral</div>';
-            return;
-          }
-
-          // Agrupar por página (cada assinatura pode estar em múltiplas)
-          const grupos = {};
-          selecionadas.forEach(a => {
-            (a.paginas || ['last']).forEach(pg => {
-              if (!grupos[pg]) grupos[pg] = [];
-              grupos[pg].push(a);
-            });
-          });
-
-          let html = '';
-          const keys = Object.keys(grupos).sort((a, b) => {
-            if (a === 'last') return 1;
-            if (b === 'last') return -1;
-            return parseInt(a) - parseInt(b);
-          });
-
-          keys.forEach(pg => {
-            const label = pg === 'last' ? 'Última página' : `Página ${pg}`;
-            html += `<div style="color:var(--text-secondary);font-size:9pt;margin:0.5rem 0 0.3rem 0;text-align:left;border-bottom:1px dashed #ccc;padding-bottom:2px;">${label}</div>`;
-            grupos[pg].forEach(a => {
-              html += `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`;
-            });
-          });
-
-          container.innerHTML = html;
-          agendarLivePagination();
-        }
-        function preencherOrgao() { }
-        function carregarAssinaturasSelecao() {
-          const maxPages = 5;
-          document.getElementById('assinaturasContainer').innerHTML =
-            assinaturas.sort((a, b) => a.ordem - b.ordem)
-              .map(a => {
-                let pageToggles = '';
-                for (let p = 1; p <= maxPages; p++) {
-                  pageToggles += `<div class="page-toggle" data-ass="${a.id}" data-page="${p}" onclick="toggleAssPage(this)">${p}</div>`;
-                }
-                pageToggles += `<div class="page-toggle active" data-ass="${a.id}" data-page="last" onclick="toggleAssPage(this)">U</div>`;
-                return `<div class="sidebar-assinatura-item" data-ass-id="${a.id}">
-                  <div class="sidebar-ass-header">
-                    <input type="checkbox" value="${a.id}" checked onchange="atualizarAssinaturasNaFolha()">
-                    <div class="sidebar-assinatura-info">
-                      <div style="font-weight:600;">${a.nome}</div>
-                      <div style="color:var(--text-secondary);font-size:0.8rem;">${a.cargo}</div>
-                    </div>
-                  </div>
-                  <div class="sidebar-ass-pages">
-                    <span class="pages-label">Págs:</span>
-                    ${pageToggles}
-                  </div>
-                </div>`;
-              }).join('');
-          atualizarAssinaturasNaFolha();
-        }
-
-        window.toggleAssPage = function(el) {
-          el.classList.toggle('active');
-          atualizarAssinaturasNaFolha();
-        }
-        function obterAssinaturasSelecionadas() {
-          const items = [...document.querySelectorAll('#assinaturasContainer .sidebar-assinatura-item')];
-          const result = [];
-          items.forEach(item => {
-            const cb = item.querySelector('input[type="checkbox"]');
-            if (!cb || !cb.checked) return;
-            const id = parseInt(cb.value);
-            const a = assinaturas.find(x => x.id === id);
-            if (!a) return;
-            const activeToggles = [...item.querySelectorAll('.page-toggle.active')];
-            const paginas = activeToggles.map(t => t.dataset.page);
-            if (paginas.length === 0) paginas.push('last');
-            result.push({ ...a, paginas });
-          });
-          return result.sort((a, b) => a.ordem - b.ordem);
-        }
-
-        /* Validação */
-        function validarFormulario() {
-          let ok = true;
-          if (selectedOrgaosList.length === 0) { document.getElementById('orgaoError').style.display = 'block'; ok = false; } else document.getElementById('orgaoError').style.display = 'none';
-          if (!document.getElementById('assuntoOficio').value) { document.getElementById('assuntoError').style.display = 'block'; ok = false; } else document.getElementById('assuntoError').style.display = 'none';
-          const textoErr = document.getElementById('textoError');
-          if (!getTextoPlain().trim()) { if (textoErr) textoErr.style.display = 'block'; mostrarMensagem('Digite o texto do ofício.', 'warning'); ok = false; } else { if (textoErr) textoErr.style.display = 'none'; }
-          return ok;
-        }
-
-        /* Preview & Generating - popula o preview oculto para PDF/impressão */
-        function popularPreviewPdf() {
-          applyHeaderSource();
-          const headerImgPdf = document.getElementById('headerImgPdf');
-          const headerImgMain = document.getElementById('headerImg');
-          if (headerImgPdf && headerImgMain) headerImgPdf.src = headerImgMain.src;
-
-          document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${document.getElementById('numeroOficio').value}`;
-          document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${document.getElementById('dataOficio').value}`;
-
-          const container = document.getElementById('previewDestinatariosPdf');
-          if (container) {
-            container.innerHTML = selectedOrgaosList.map(org => `
-              <div style="margin-bottom: 0.8rem;">
-                <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-                <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
-              </div>
-            `).join('');
-          }
-
-          document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value;
-          document.getElementById('previewTexto').innerHTML = getTextoHTML();
-          // Assinaturas no preview simples - mostrar todas (paginação real é feita em paginateIntoPagesFixed)
-          const assSel = obterAssinaturasSelecionadas();
-          document.getElementById('previewAssinaturasPdf').innerHTML =
-            assSel.map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
-        }
-
-        function visualizarPrevia() {
-          if (!validarFormulario()) return;
-          popularPreviewPdf();
-          document.getElementById('previewSection').style.display = 'block';
-          document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
-        }
-        function editarOficio() { document.getElementById('previewSection').style.display = 'none'; }
-
-        async function imprimirOficio() {
-          if (!validarFormulario()) return;
-          popularPreviewPdf();
-          applyHeaderSource();
-          const headerImgEl = document.getElementById("headerImg");
-          await waitImg(headerImgEl);
-          const headerDataUrl = imgToDataURL(headerImgEl) || headerImgEl.src;
-          if (!headerDataUrl) { mostrarMensagem("Erro na imagem do cabeçalho", "error"); return; }
-
-          const root = buildPrintRoot();
-          root.id = "__native_print_root__";
-          root.className = "print-visible-root";
+          await this.waitForImage(img);
 
           try {
-            const pages = paginateIntoPagesFixed(root, headerDataUrl);
-            const style = document.createElement('style');
-            style.id = "print-override-style";
-            style.textContent = `
-          @media print {
-            body > *:not(#__native_print_root__) { display: none !important; }
-            #__native_print_root__ { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; z-index: 9999 !important; opacity: 1 !important; }
-            .__print_page__ { break-after: page; margin-bottom: 0; box-shadow: none !important; border: none !important; }
-          }
-        `;
-            document.head.appendChild(style);
-            window.print();
-            setTimeout(() => { removePrintRoot(root); style.remove(); }, 1000);
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width || 1000;
+            canvas.height = img.naturalHeight || img.height || 300;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            return canvas.toDataURL('image/jpeg', 0.95);
           } catch (e) {
-            console.error(e);
-            mostrarMensagem('Erro ao imprimir.', 'error');
-            removePrintRoot(root);
-          }
-        }
-
-        async function gerarOficio() {
-          if (!validarFormulario()) return;
-          const { addDoc, collection } = window.firestore;
-          const db = window.db;
-
-          const destinatarioStr = selectedOrgaosList.map(o => o.nome).join('; ');
-
-          const novo = {
-            id: Date.now(),
-            numero: document.getElementById('numeroOficio').value,
-            data: new Date().toLocaleDateString('pt-BR'),
-            dataCompleta: document.getElementById('dataOficio').value,
-            destinatario: destinatarioStr,
-            destinatarios: selectedOrgaosList, // Save as array too
-            assunto: document.getElementById('assuntoOficio').value,
-            texto: getTextoHTML(),
-            assinaturas: obterAssinaturasSelecionadas(),
-            protocolo: ""
-          };
-          try {
-            await addDoc(collection(db, "oficios"), novo);
-            mostrarMensagem('Ofício salvo na nuvem!', 'success');
-            // Auto-print after save
-            await imprimirOficio();
-            limparFormulario();
-          } catch (e) {
-            console.error(e);
-            alert("Erro ao salvar ofício: " + e.message);
-          }
-        }
-
-        /* ===== HELPERS & PRINTING (CONSOLIDATED) ===== */
-
-        async function waitImg(img) {
-          if (!img) return;
-          if (img.complete && img.naturalWidth > 0) return;
-          await new Promise((res) => {
-            img.onload = () => res();
-            img.onerror = () => res();
-          });
-        }
-
-        function imgToDataURL(imgEl) {
-          if (!imgEl) return null;
-          try {
-            const c = document.createElement("canvas");
-            c.width = imgEl.naturalWidth || imgEl.width || 1000;
-            c.height = imgEl.naturalHeight || imgEl.height || 300;
-            const ctx = c.getContext("2d");
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, c.width, c.height);
-            ctx.drawImage(imgEl, 0, 0, c.width, c.height);
-            return c.toDataURL("image/jpeg", 0.95);
-          } catch (e) {
-            console.warn("imgToDataURL failed:", e);
+            console.warn('Erro ao converter imagem:', e);
             return null;
           }
-        }
+        },
 
-        /* PDF / PRINT LOGIC */
-        function mmToPx(mm) { return Math.round((mm * 96) / 25.4); }
-
-        function cloneOficioBodyForPrint() {
-          const body = document.querySelector("#previewCard .oficio-body");
-          if (!body) return null;
-          const cloned = body.cloneNode(true);
-          cloned.style.margin = "0"; cloned.style.padding = "0"; cloned.style.boxSizing = "border-box";
-          cloned.style.fontFamily = "Arial, sans-serif"; cloned.style.fontSize = "12pt";
-          cloned.style.lineHeight = "1.5"; cloned.style.color = "#000"; cloned.style.textAlign = "justify";
-          return cloned;
-        }
-
-        function extractBlocksForPagination(oficioBodyClone) {
-          if (!oficioBodyClone) return [];
-          const blocks = [];
-          const meta = oficioBodyClone.querySelector(".oficio-meta-info");
-          const content = oficioBodyClone.querySelector(".oficio-content");
-
-          if (meta) blocks.push(meta.cloneNode(true));
-          if (content) {
-            const contentClone = content.cloneNode(true);
-            const children = Array.from(contentClone.childNodes).filter(n => !(n.nodeType === 3 && !n.textContent.trim()));
-            for (const node of children) {
-              if (node.nodeType !== 1) continue;
-              if (node.tagName === "P") { blocks.push(node.cloneNode(true)); continue; }
-              if (node.tagName === "DIV") {
-                const innerEls = Array.from(node.children);
-                for (const el of innerEls) {
-                  const tag = (el.tagName || "").toUpperCase();
-                  if (tag === "UL" || tag === "OL") {
-                    const lis = Array.from(el.querySelectorAll(":scope > li"));
-                    if (lis.length) {
-                      for (const li of lis) {
-                        const list = document.createElement(tag === "UL" ? "ul" : "ol");
-                        const liClone = li.cloneNode(true);
-                        list.appendChild(liClone);
-                        blocks.push(list);
-                      }
-                    } else blocks.push(el.cloneNode(true));
-                    continue;
-                  }
-                  blocks.push(el.cloneNode(true));
-                }
-                if (!innerEls.length) blocks.push(node.cloneNode(true));
-                continue;
-              }
-              blocks.push(node.cloneNode(true));
-            }
-          }
-          // Assinaturas NÃO são incluídas aqui - serão inseridas por página em paginateIntoPagesFixed
-          return blocks;
-        }
-
-        function buildBlocksForPdf() { return extractBlocksForPagination(cloneOficioBodyForPrint()); }
-
-        function buildPrintRoot() {
-          const root = document.createElement("div");
-          root.id = "__print_root__";
-          root.style.position = "fixed"; root.style.left = "0"; root.style.top = "0";
-          root.style.width = "210mm"; root.style.height = "auto";
-          root.style.opacity = "0"; root.style.pointerEvents = "none"; root.style.zIndex = "-1";
-          root.style.background = "#fff"; root.style.boxSizing = "border-box";
-          document.body.appendChild(root);
-          return root;
-        }
-
-        function removePrintRoot(root) { try { root && root.remove(); } catch (_) { } }
-
-        function createPageElement(headerSrc, pageWpx, pageHpx, headerHpx, footerHpx, contentBoxStyles) {
-          const page = document.createElement("div");
-          page.className = "__print_page__";
-          page.style.width = pageWpx + "px"; page.style.height = pageHpx + "px";
-          page.style.background = "#fff"; page.style.overflow = "hidden";
-          page.style.position = "relative"; page.style.boxSizing = "border-box";
-
-          const header = document.createElement("div");
-          header.style.height = headerHpx + "px"; header.style.width = "100%";
-          header.style.display = "flex"; header.style.alignItems = "flex-start"; header.style.justifyContent = "center";
-          header.style.boxSizing = "border-box"; header.style.padding = "0"; header.style.overflow = "hidden";
-
-          if (headerSrc) {
-            const img = document.createElement("img");
-            // Only use anonymous if it's not the specific known non-CORS URL
-            if (headerSrc.startsWith("http") && !headerSrc.includes("advantagemidia.com")) {
-              img.crossOrigin = "anonymous";
-            }
-            img.src = headerSrc;
-            img.style.width = "82%";
-            img.style.height = "auto";
-            img.style.maxHeight = "100%";
-            img.style.objectFit = "contain"; img.style.display = "block";
-            header.appendChild(img);
-          }
-
-          const content = document.createElement("div");
-          content.style.position = "absolute";
-          content.style.left = contentBoxStyles.left; content.style.top = contentBoxStyles.top;
-          content.style.right = contentBoxStyles.right; content.style.bottom = contentBoxStyles.bottom;
-          content.style.boxSizing = "border-box"; content.style.overflow = "hidden";
-
-          const footer = document.createElement("div");
-          footer.style.position = "absolute"; footer.style.left = "0"; footer.style.bottom = "0";
-          footer.style.width = "100%"; footer.style.height = footerHpx + "px";
-          footer.style.boxSizing = "border-box"; footer.style.borderTop = "1px solid #000";
-          footer.style.padding = "10px 30px"; footer.style.fontFamily = "Arial, sans-serif";
-          footer.style.fontSize = "9pt"; footer.style.color = "#000"; footer.style.lineHeight = "1.3";
-          footer.innerHTML = `<div style="font-weight:700; text-transform:uppercase">Prefeitura Municipal de Rondonópolis – MT</div><div style="margin-top:2px;">Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022</div>`;
-
-          page.appendChild(header); page.appendChild(content); page.appendChild(footer);
-          return { page, content };
-        }
-
-        function popLastN(stackEl, n) {
-          const moved = [];
-          for (let i = 0; i < n; i++) {
-            const last = stackEl.lastElementChild;
-            if (!last) break;
-            stackEl.removeChild(last);
-            moved.unshift(last);
-          }
-          return moved;
-        }
-
-        function prependNodes(stackEl, nodes) {
-          for (let i = nodes.length - 1; i >= 0; i--) stackEl.insertBefore(nodes[i], stackEl.firstChild);
-        }
-
-        function criarBlocoAssinaturas(assList) {
-          const div = document.createElement("div");
-          div.className = "oficio-assinatura";
-          div.style.textAlign = "center";
-          div.style.marginTop = "2.5rem";
-          assList.forEach(a => {
-            const bloco = document.createElement("div");
-            bloco.className = "assinatura-bloco";
-            bloco.innerHTML = `<div class="assinatura-nome-preview" style="font-weight:700;margin-top:2rem;">${a.nome}</div><div class="assinatura-cargo-preview" style="font-size:10pt;">${a.cargo}</div>`;
-            div.appendChild(bloco);
+        waitForImage(img) {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          
+          return new Promise((resolve) => {
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
           });
-          return div;
         }
+      };
 
-        function paginateIntoPagesFixed(root, headerSrc) {
-          const pageWpx = mmToPx(210); const pageHpx = mmToPx(297);
-          const headerHpx = mmToPx(32); const footerHpx = mmToPx(15);
-          const marginLeft = mmToPx(25); const marginRight = mmToPx(15);
-          const contentTop = headerHpx + mmToPx(2); const contentBottom = footerHpx + mmToPx(2);
-          const contentBoxStyles = { left: marginLeft + "px", right: marginRight + "px", top: contentTop + "px", bottom: contentBottom + "px" };
+      // MÓDULO: Preview
+      const Preview = {
+        show() {
+          if (!Forms.validate()) return;
 
-          const blocks = buildBlocksForPdf();
+          Header.apply();
 
-          // Obter assinaturas selecionadas com páginas
-          const assSelecionadas = _assinaturasPdfOverride || obterAssinaturasSelecionadas();
-          const assPorPagina = {}; // { "1": [...], "2": [...], "last": [...] }
-          assSelecionadas.forEach(a => {
-            const pags = a.paginas || (a.pagina ? [a.pagina] : ['last']);
-            pags.forEach(pg => {
-              if (!assPorPagina[pg]) assPorPagina[pg] = [];
-              assPorPagina[pg].push(a);
-            });
-          });
+          const codigo = UI.getFieldValue('orgaoDestinatario');
+          const orgao = orgaos.find(o => o.codigo === codigo);
 
-          const pagesData = []; // array de { page, content, stack }
+          document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${UI.getFieldValue('numeroOficio')}`;
+          document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${UI.getFieldValue('dataOficio')}`;
+          document.getElementById('previewPara').textContent = orgao?.nome || '';
+          document.getElementById('previewEndereco').textContent = orgao?.endereco || '';
+          document.getElementById('previewAssunto').textContent = UI.getFieldValue('assuntoOficio');
+          document.getElementById('previewTexto').innerHTML = Editor.getContent();
+          document.getElementById('previewAssinaturas').innerHTML = '';
 
-          function newPage() {
-            const pg = createPageElement(headerSrc, pageWpx, pageHpx, headerHpx, footerHpx, contentBoxStyles);
-            root.appendChild(pg.page);
-            const stack = document.createElement("div");
-            stack.className = "oficio-content"; stack.style.width = "100%";
-            stack.style.boxSizing = "border-box"; stack.style.margin = "0";
-            pg.content.appendChild(stack);
-            return { page: pg.page, content: pg.content, stack };
-          }
+          document.getElementById('previewSection').classList.add('show');
+          document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+        },
 
-          // Fase 1: paginar conteúdo normalmente
-          let current = newPage();
-          for (let i = 0; i < blocks.length; i++) {
-            const candidate = blocks[i].cloneNode(true);
-            current.stack.appendChild(candidate);
-            if (current.stack.scrollHeight > current.content.clientHeight) {
-              current.stack.removeChild(candidate);
-              const next = newPage();
-              pagesData.push(current);
-              current = next;
-              current.stack.appendChild(candidate);
-            }
-          }
-          pagesData.push(current);
+        hide() {
+          document.getElementById('previewSection').classList.remove('show');
+        },
 
-          // Fase 2: inserir assinaturas fixas (páginas numéricas)
-          const paginasFixas = Object.keys(assPorPagina).filter(k => k !== 'last').sort((a, b) => parseInt(a) - parseInt(b));
-          paginasFixas.forEach(pgNum => {
-            const idx = parseInt(pgNum) - 1; // 0-indexed
-            if (idx < 0) return;
+        async loadOficioData(oficio) {
+          const orgao = orgaos.find(o => o.nome === oficio.destinatario);
+          
+          document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
+          document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
+          document.getElementById('previewPara').textContent = oficio.destinatario;
+          document.getElementById('previewEndereco').textContent = orgao?.endereco || '';
+          document.getElementById('previewAssunto').textContent = oficio.assunto;
+          document.getElementById('previewTexto').innerHTML = oficio.texto;
+          document.getElementById('previewAssinaturas').innerHTML = '';
 
-            // Criar páginas extras se necessário
-            while (pagesData.length <= idx) {
-              pagesData.push(newPage());
-            }
-
-            const target = pagesData[idx];
-            const blocoAss = criarBlocoAssinaturas(assPorPagina[pgNum]);
-            target.stack.appendChild(blocoAss);
-
-            // Se estourou, mover assinatura para nova página após esta
-            if (target.stack.scrollHeight > target.content.clientHeight) {
-              target.stack.removeChild(blocoAss);
-              const extra = newPage();
-              extra.stack.appendChild(blocoAss);
-              pagesData.splice(idx + 1, 0, extra);
-            }
-          });
-
-          // Fase 3: inserir assinaturas "última página"
-          if (assPorPagina['last'] && assPorPagina['last'].length > 0) {
-            const lastPage = pagesData[pagesData.length - 1];
-            const blocoAss = criarBlocoAssinaturas(assPorPagina['last']);
-            lastPage.stack.appendChild(blocoAss);
-
-            if (lastPage.stack.scrollHeight > lastPage.content.clientHeight) {
-              lastPage.stack.removeChild(blocoAss);
-              const extra = newPage();
-              extra.stack.appendChild(blocoAss);
-              pagesData.push(extra);
-            }
-          }
-
-          return pagesData.map(p => p.page);
+          document.getElementById('previewSection').classList.add('show');
         }
+      };
 
-        async function renderPageToCanvas(pageEl) {
-          return await html2canvas(pageEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
-        }
+      // MÓDULO: PDF
+      const PDF = {
+        mmToPx(mm) {
+          return Math.round((mm * 96) / 25.4);
+        },
 
-        async function gerarPDF(oficio = null) {
-          if (oficio) {
-            // Configurar override de assinaturas para paginação
-            _assinaturasPdfOverride = (oficio.assinaturas || []).map(a => ({
-              ...a,
-              paginas: a.paginas || (a.pagina ? [a.pagina] : ['last'])
-            }));
-
-            document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
-            document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
-
-            const container = document.getElementById('previewDestinatariosPdf');
-            if (oficio.destinatarios && Array.from(oficio.destinatarios).length > 0) {
-              container.innerHTML = oficio.destinatarios.map(org => `
-                <div style="margin-bottom: 0.8rem;">
-                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
-                </div>
-              `).join('');
-            } else {
-              const org = orgaos.find(o => o.nome === oficio.destinatario);
-              container.innerHTML = `
-                <div style="margin-bottom: 0.8rem;">
-                  <div class="oficio-para"><span class="label">Para:</span> <span>${oficio.destinatario}</span></div>
-                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org ? org.endereco : ''}</span></div>
-                </div>
-              `;
-            }
-
-            document.getElementById('previewAssunto').textContent = oficio.assunto;
-            document.getElementById('previewTexto').innerHTML = oficio.texto;
-            document.getElementById('previewAssinaturasPdf').innerHTML = (oficio.assinaturas || []).map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
-            document.getElementById('previewSection').style.display = 'block';
-            // Sync header img
-            const headerImgPdf = document.getElementById('headerImgPdf');
-            const headerImgMain = document.getElementById('headerImg');
-            if (headerImgPdf && headerImgMain) headerImgPdf.src = headerImgMain.src;
+        async generate(oficioIndex = null) {
+          let oficio = null;
+          
+          if (oficioIndex !== null) {
+            oficio = historico[oficioIndex];
+            await Preview.loadOficioData(oficio);
           } else {
-            if (!validarFormulario()) return;
-            popularPreviewPdf();
-            document.getElementById('previewSection').style.display = 'block';
+            Preview.show();
           }
-          applyHeaderSource();
-          const headerImgEl = document.getElementById("headerImg");
-          await waitImg(headerImgEl);
-          const headerDataUrl = imgToDataURL(headerImgEl) || headerImgEl.src;
-          const root = buildPrintRoot();
+
+          Header.apply();
+          const headerDataUrl = await Header.toDataURL();
+          
+          if (!headerDataUrl) {
+            UI.showMessage('Erro ao processar cabeçalho', 'error');
+            return;
+          }
+
+          const root = this.buildPrintRoot();
+
           try {
-            const pages = paginateIntoPagesFixed(root, headerDataUrl);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF("p", "mm", "a4");
-            const pageWmm = 210; const pageHmm = 297;
-            for (let i = 0; i < pages.length; i++) {
-              const canvas = await renderPageToCanvas(pages[i]);
-              const imgData = canvas.toDataURL("image/jpeg", 0.92);
-              if (i > 0) pdf.addPage();
-              pdf.addImage(imgData, "JPEG", 0, 0, pageWmm, pageHmm);
-            }
-            const nome = (oficio?.numero || document.getElementById('numeroOficio').value).replaceAll('/', '_');
-            pdf.save(`Oficio_${nome}.pdf`);
-            mostrarMensagem('📄 PDF baixado!', 'success');
-          } catch (e) {
-            console.error(e); mostrarMensagem('Erro ao gerar PDF.', 'error');
-          } finally {
-            removePrintRoot(root);
-            _assinaturasPdfOverride = null;
-          }
-        }
-
-        /* ===== CRUD - ORGAOS ===== */
-        window.salvarOrgao = async function () {
-          const idx = parseInt(document.getElementById('editOrgaoIndex').value);
-          const codigo = document.getElementById('editCodigoOrgao').value.trim();
-          const nome = document.getElementById('editNomeOrgao').value.trim();
-          const endereco = document.getElementById('editEnderecoOrgao').value.trim();
-          if (!codigo || !nome) { alert("Preencha Código e Nome"); return; }
-
-          const novo = { codigo, nome, endereco };
-          if (idx >= 0) orgaos[idx] = novo; else orgaos.push(novo);
-          await salvarSettings('orgaos');
-          atualizarTabelaOrgaos(); carregarOrgaos(); fecharModalOrgao();
-          mostrarMensagem("Órgão salvo!", "success");
-        }
-        window.excluirOrgao = async function (i) {
-          if (confirm('Excluir órgão?')) {
-            orgaos.splice(i, 1);
-            await salvarSettings('orgaos');
-            atualizarTabelaOrgaos(); carregarOrgaos();
-            mostrarMensagem("Órgão excluído.", "success");
-          }
-        }
-        window.adicionarOrgao = function () {
-          document.getElementById('editOrgaoIndex').value = "-1";
-          document.getElementById('editCodigoOrgao').value = "";
-          document.getElementById('editNomeOrgao').value = "";
-          document.getElementById('editEnderecoOrgao').value = "";
-          document.getElementById('orgaoModalTitle').textContent = "Adicionar Órgão";
-          document.getElementById('orgaoModal').style.display = 'block';
-        }
-        window.editarOrgao = function (index) {
-          const o = orgaos[index];
-          document.getElementById('editOrgaoIndex').value = index;
-          document.getElementById('editCodigoOrgao').value = o.codigo;
-          document.getElementById('editNomeOrgao').value = o.nome;
-          document.getElementById('editEnderecoOrgao').value = o.endereco;
-          document.getElementById('orgaoModalTitle').textContent = "Editar Órgão";
-          document.getElementById('orgaoModal').style.display = 'block';
-        }
-        window.fecharModalOrgao = function () { document.getElementById('orgaoModal').style.display = 'none'; }
-        window.atualizarTabelaOrgaos = function () {
-          const tbody = document.getElementById('orgaosBody');
-          if (!tbody) return;
-          tbody.innerHTML = orgaos.map((o, i) => `<tr><td>${o.codigo}</td><td>${o.nome}</td><td>${o.endereco}</td><td style="text-align:center;"><button class="btn-editor" style="background:#f59e0b; margin-right:5px;" onclick="editarOrgao(${i})">✏️</button><button class="btn-editor" style="background:#dc2626;" onclick="excluirOrgao(${i})">🗑️</button></td></tr>`).join('');
-        }
-
-        /* ===== CRUD - ASSINATURAS ===== */
-        window.salvarAssinatura = async function () {
-          const idParam = document.getElementById('editAssinaturaId').value;
-          const nome = document.getElementById('editNomeAssinatura').value.trim();
-          const cargo = document.getElementById('editCargoAssinatura').value.trim();
-          const ordem = parseInt(document.getElementById('editOrdemAssinatura').value) || 99;
-          if (!nome || !cargo) { alert("Preencha Nome e Cargo"); return; }
-
-          const novo = { id: idParam ? parseInt(idParam) : Date.now(), nome, cargo, ordem };
-          if (idParam) {
-            const id = parseInt(idParam);
-            const idx = assinaturas.findIndex(x => x.id === id);
-            if (idx >= 0) assinaturas[idx] = novo;
-          } else assinaturas.push(novo);
-
-          await salvarSettings('assinaturas');
-          atualizarTabelaAssinaturas(); carregarAssinaturasSelecao(); fecharModalAssinatura();
-          mostrarMensagem("Assinatura salva!", "success");
-        }
-        window.excluirAssinatura = async function (id) {
-          if (confirm('Excluir assinatura?')) {
-            assinaturas = assinaturas.filter(x => x.id !== id);
-            await salvarSettings('assinaturas');
-            atualizarTabelaAssinaturas(); carregarAssinaturasSelecao();
-          }
-        }
-        window.adicionarAssinatura = function () {
-          document.getElementById('editAssinaturaId').value = "";
-          document.getElementById('editNomeAssinatura').value = "";
-          document.getElementById('editCargoAssinatura').value = "";
-          document.getElementById('editOrdemAssinatura').value = "";
-          document.getElementById('assinaturaModalTitle').textContent = "Adicionar Assinatura";
-          document.getElementById('assinaturaModal').style.display = 'block';
-        }
-        window.editarAssinatura = function (id) {
-          const a = assinaturas.find(x => x.id === id);
-          if (!a) return;
-          document.getElementById('editAssinaturaId').value = a.id;
-          document.getElementById('editNomeAssinatura').value = a.nome;
-          document.getElementById('editCargoAssinatura').value = a.cargo;
-          document.getElementById('editOrdemAssinatura').value = a.ordem;
-          document.getElementById('assinaturaModalTitle').textContent = "Editar Assinatura";
-          document.getElementById('assinaturaModal').style.display = 'block';
-        }
-        window.fecharModalAssinatura = function () { document.getElementById('assinaturaModal').style.display = 'none'; }
-        window.atualizarTabelaAssinaturas = function () {
-          const tbody = document.getElementById('assinaturasBody');
-          if (!tbody) return;
-          tbody.innerHTML = assinaturas.sort((a, b) => a.ordem - b.ordem).map(a => `<tr><td>${a.nome}</td><td>${a.cargo}</td><td>${a.ordem}</td><td style="text-align:center;"><button class="btn-editor" style="background:#f59e0b; margin-right:5px;" onclick="editarAssinatura(${a.id})">✏️</button><button class="btn-editor" style="background:#dc2626;" onclick="excluirAssinatura(${a.id})">🗑️</button></td></tr>`).join('');
-        }
-
-        /* ===== HISTORICO ACTIONS ===== */
-        window.excluirHistorico = async function (i) {
-          if (confirm('Excluir permanentemente?')) {
-            const h = historico[i];
-            if (!h || !h._docId) return;
-            const { deleteDoc, doc } = window.firestore;
-            const db = window.db;
-            await deleteDoc(doc(db, "oficios", h._docId));
-            mostrarMensagem("Excluído.", "success");
-          }
-        }
-        window.atualizarTabelaHistorico = function () {
-          const b = document.getElementById('historicoBody');
-          if (!b) return;
-          if (!historico.length) { b.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem">📭 Vazio</td></tr>'; return; }
-          b.innerHTML = historico.map((o, i) => {
-            const protoHtml = o.protocolo
-              ? `<span style="font-weight:600;color:var(--primary);cursor:pointer;" onclick="lancarProtocolo(${i})" title="Editar Protocolo">${o.protocolo}</span>`
-              : `<button class="btn btn-sm btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="lancarProtocolo(${i})">Lançar</button>`;
-            return `<tr><td>${o.numero}</td><td>${o.data}</td><td>${protoHtml}</td><td>${o.destinatario}</td><td>${o.assunto}</td><td><div style="display:flex;gap:0.5rem;justify-content:center;"><button class="btn btn-sm btn-success" onclick="gerarPDF(historico[${i}])" title="Baixar PDF">📄</button><button class="btn btn-sm btn-primary" onclick="editarHistorico(${i})" title="Carregar">✏️</button><button class="btn btn-sm btn-warning" onclick="excluirHistorico(${i})">🗑️</button></div></td></tr>`;
-          }).join('');
-        }
-        window.lancarProtocolo = async function (i) {
-          const h = historico[i];
-          if (!h || !h._docId) return;
-          const atual = h.protocolo || "";
-          const novo = prompt("Protocolo:", atual);
-          if (novo !== null) {
-            const { updateDoc, doc } = window.firestore;
-            const db = window.db;
-            await updateDoc(doc(db, "oficios", h._docId), { protocolo: novo.trim() });
-            mostrarMensagem("Protocolo atualizado.", "success");
-          }
-        }
-        window.editarHistorico = function (i) {
-          if (!confirm('Carregar dados deste ofício para edição?')) return;
-          const h = historico[i];
-          document.getElementById('numeroOficio').value = h.numero;
-          if (h.dataCompleta) document.getElementById('dataOficio').value = h.dataCompleta;
-          document.getElementById('assuntoOficio').value = h.assunto;
-          tinymce.get('textoOficio').setContent(h.texto);
-
-          // Handle multiple organs in history
-          selectedOrgaosList = [];
-          if (h.destinatarios && h.destinatarios.length > 0) {
-            selectedOrgaosList = [...h.destinatarios];
-          } else if (h.destinatario) {
-            // Backward compatibility
-            const orgObj = orgaos.find(o => o.nome === h.destinatario);
-            if (orgObj) selectedOrgaosList = [orgObj];
-          }
-          renderSelectedOrgaos();
-          document.querySelectorAll('#assinaturasContainer input').forEach(cb => cb.checked = false);
-          // Resetar todos os toggles de página
-          document.querySelectorAll('#assinaturasContainer .page-toggle').forEach(t => t.classList.remove('active'));
-          if (h.assinaturas) {
-            h.assinaturas.forEach(sig => {
-              const item = document.querySelector(`#assinaturasContainer input[value="${sig.id}"]`);
-              if (item) {
-                item.checked = true;
-                const container = item.closest('.sidebar-assinatura-item');
-                if (container) {
-                  // Restaurar páginas (compatível com paginas array ou pagina singular)
-                  const pags = sig.paginas || (sig.pagina ? [sig.pagina] : ['last']);
-                  pags.forEach(pg => {
-                    const toggle = container.querySelector(`.page-toggle[data-page="${pg}"]`);
-                    if (toggle) toggle.classList.add('active');
-                  });
-                }
-              }
-            });
-          }
-          atualizarAssinaturasNaFolha();
-          showTab('gerador');
-          mostrarMensagem("Dados carregados.", "success");
-        }
-        window.filtrarHistorico = function () { atualizarTabelaHistorico(); }
-
-        /* UI Helpers */
-        function mostrarMensagem(m, t) {
-          const el = document.getElementById('statusMessage');
-          if (el) {
-            el.className = `status-message status-${t} show`;
-            el.textContent = m;
-            setTimeout(() => el.classList.remove('show'), 4000);
-          } else alert(m);
-        }
-        window.onclick = e => { if (e.target.className === 'modal') e.target.style.display = 'none'; };
-
-      </script>
-</body>
-
-</html>
+            const pages = this.paginate(root, headerDataUrl);
+            const pdf = await this.createPDF(pages
