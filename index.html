@@ -88,34 +88,8 @@
         const sidebarEmail = document.getElementById('sidebarUserEmail');
         if (sidebarEmail) sidebarEmail.textContent = user.email;
 
-        // Trigger data load com retry automático
-        if (window.carregarDadosOnline) {
-          let tentativas = 0;
-          const maxTentativas = 3;
-          const statusEl = document.getElementById('connectionStatus');
-          
-          async function tentarCarregar() {
-            try {
-              tentativas++;
-              if (statusEl) statusEl.innerHTML = `🟡 Tentativa ${tentativas}...`;
-              console.log(`Tentativa ${tentativas} de carregar dados...`);
-              await window.carregarDadosOnline();
-              if (statusEl) statusEl.innerHTML = '🟢 Online';
-            } catch (e) {
-              console.warn(`Tentativa ${tentativas} falhou:`, e);
-              if (tentativas < maxTentativas) {
-                if (statusEl) statusEl.innerHTML = `🟡 Reconectando...`;
-                setTimeout(tentarCarregar, 2000 * tentativas); // Delay progressivo
-              } else {
-                console.warn('Firebase offline após 3 tentativas, usando dados locais');
-                if (statusEl) statusEl.innerHTML = '🔴 Offline';
-                carregarDadosLocais();
-              }
-            }
-          }
-          
-          tentarCarregar();
-        }
+        // Trigger data load
+        if (window.carregarDadosOnline) window.carregarDadosOnline();
       } else {
         if (loginScreen) loginScreen.style.display = 'flex';
         if (appContent) appContent.style.display = 'none';
@@ -1806,7 +1780,6 @@
 
           <div class="sidebar-user">
             <span class="sidebar-user-email" id="sidebarUserEmail"></span>
-            <div id="connectionStatus" style="font-size:0.7rem;color:#888;margin-top:2px;">🟡 Conectando...</div>
             <button class="btn-logout" id="btnLogoutSidebar">Sair</button>
           </div>
         </aside>
@@ -1895,10 +1868,7 @@
                     </div>
                   </div>
 
-                  <!-- Assinaturas renderizadas -->
-                  <div class="oficio-assinatura" id="previewAssinaturas">
-                    <div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral →</div>
-                  </div>
+                  <!-- Assinaturas aparecem nas páginas de preview abaixo -->
                 </div>
 
                 <!-- Rodapé -->
@@ -2128,12 +2098,7 @@
 
         // --- FIREBASE DATA HANDLING ---
         window.carregarDadosOnline = async function () {
-          // Timeout de 15 segundos para evitar travamento
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout - Firebase não respondeu')), 15000)
-          );
-          
-          const dataPromise = async () => {
+          try {
             const { collection, getDocs, doc, getDoc, setDoc, query, orderBy } = window.firestore;
             const db = window.db;
 
@@ -2205,76 +2170,24 @@
 
             atualizarCamposAutomaticos();
             mostrarMensagem("Dados sincronizados com sucesso!", "success");
-          };
 
-          try {
-            await Promise.race([dataPromise(), timeoutPromise]);
           } catch (e) {
             console.error("Erro carregando dados:", e);
-            throw e; // Re-throw para ser capturado pelo retry
+            mostrarMensagem("Erro ao carregar dados.", "error");
           }
         };
 
         // --- PERSISTENCE HELPERS ---
         async function salvarSettings(type) {
-          if (!window.db) {
-            console.warn('Sistema offline - configurações não salvas na nuvem');
-            return;
-          }
-          try {
-            const { doc, setDoc } = window.firestore;
-            const db = window.db;
-            if (type === 'orgaos') await setDoc(doc(db, "settings", "orgaos"), { list: orgaos });
-            if (type === 'assinaturas') await setDoc(doc(db, "settings", "assinaturas"), { list: assinaturas });
-          } catch (e) {
-            console.warn('Erro salvando configurações:', e);
-          }
+          const { doc, setDoc } = window.firestore;
+          const db = window.db;
+          if (type === 'orgaos') await setDoc(doc(db, "settings", "orgaos"), { list: orgaos });
+          if (type === 'assinaturas') await setDoc(doc(db, "settings", "assinaturas"), { list: assinaturas });
         }
 
         // Placeholder for old calls (deprecated)
         function salvarDados() { }
         function carregarDados() { }
-
-        // Fallback offline quando Firebase não funciona
-        function carregarDadosLocais() {
-          console.log('Carregando dados locais (modo offline)...');
-          
-          // Órgãos padrão
-          if (!orgaos || orgaos.length === 0) {
-            orgaos = [
-              { codigo: '001', nome: 'SECRETARIA MUNICIPAL DE GOVERNO', endereco: 'Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
-              { codigo: '002', nome: 'PROCURADORIA GERAL DO MUNICÍPIO', endereco: 'Rua Barão do Rio Branco, 1500, Centro, Rondonópolis - MT, CEP 78700-050' },
-              { codigo: '003', nome: 'PROCON', endereco: 'Avenida Presidente Dutra, 500, Centro, Rondonópolis - MT, CEP 78700-000' },
-              { codigo: '004', nome: 'SECRETARIA MUNICIPAL DE RECEITA', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
-              { codigo: '005', nome: 'SECRETARIA MUNICIPAL DE EDUCAÇÃO', endereco: 'Rua Barão do Rio Branco, 2020, Centro, Rondonópolis - MT, CEP 78700-050' },
-              { codigo: '006', nome: 'SECRETARIA MUNICIPAL DE TRANSPORTE E TRÂNSITO', endereco: 'Avenida Fernando Corrêa da Costa, 1000, Boa Vista, Rondonópolis - MT, CEP 78705-040' },
-              { codigo: '007', nome: 'SECRETARIA MUNICIPAL DE DESENVOLVIMENTO ECONÔMICO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' },
-              { codigo: '008', nome: 'SECRETARIA MUNICIPAL DE PROMOÇÃO E ASSISTÊNCIA SOCIAL', endereco: 'Rua Otávio Pitaluga, 1357, Centro, Rondonópolis - MT, CEP 78700-000' },
-              { codigo: '009', nome: 'SECRETARIA MUNICIPAL DE SAÚDE', endereco: 'Rua Prudente de Morais, 800, Centro, Rondonópolis - MT, CEP 78700-000' },
-              { codigo: '010', nome: 'SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO', endereco: 'Centro Administrativo, Avenida Duque de Caxias, 1000, Vila Aurora, Rondonópolis - MT, CEP 78740-022' }
-            ];
-            atualizarTabelaOrgaos();
-            carregarOrgaos();
-          }
-
-          // Assinaturas padrão
-          if (!assinaturas || assinaturas.length === 0) {
-            assinaturas = [
-              { id: 1, nome: 'Jhonatan Fernandes Gomes', cargo: 'Superintendência de Controle de Frotas e Combustível', ordem: 1 },
-              { id: 2, nome: 'Luciano Rodrigues', cargo: 'Secretário Municipal de Administração, Gestão de Pessoas e Inovação', ordem: 2 }
-            ];
-            atualizarTabelaAssinaturas();
-            carregarAssinaturasSelecao();
-          }
-
-          // Histórico vazio
-          historico = [];
-          proximoNumero = 1;
-          atualizarCamposAutomaticos();
-          atualizarTabelaHistorico();
-
-          mostrarMensagem('Sistema em modo offline - dados não serão salvos na nuvem.', 'warning');
-        }
 
         // --- LOCAL STORAGE (HEADER ONLY) ---
         const safeStorage = (() => {
@@ -2588,40 +2501,7 @@
         }
 
         function atualizarAssinaturasNaFolha() {
-          const selecionadas = obterAssinaturasSelecionadas();
-          const container = document.getElementById('previewAssinaturas');
-          if (!container) return;
-
-          if (selecionadas.length === 0) {
-            container.innerHTML = '<div style="color:#999; font-style:italic; font-size:11pt;">Selecione assinaturas no painel lateral</div>';
-            return;
-          }
-
-          // Agrupar por página (cada assinatura pode estar em múltiplas)
-          const grupos = {};
-          selecionadas.forEach(a => {
-            (a.paginas || ['last']).forEach(pg => {
-              if (!grupos[pg]) grupos[pg] = [];
-              grupos[pg].push(a);
-            });
-          });
-
-          let html = '';
-          const keys = Object.keys(grupos).sort((a, b) => {
-            if (a === 'last') return 1;
-            if (b === 'last') return -1;
-            return parseInt(a) - parseInt(b);
-          });
-
-          keys.forEach(pg => {
-            const label = pg === 'last' ? 'Última página' : `Página ${pg}`;
-            html += `<div style="color:var(--text-secondary);font-size:9pt;margin:0.5rem 0 0.3rem 0;text-align:left;border-bottom:1px dashed #ccc;padding-bottom:2px;">${label}</div>`;
-            grupos[pg].forEach(a => {
-              html += `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`;
-            });
-          });
-
-          container.innerHTML = html;
+          // Assinaturas aparecem apenas nas live pages
           agendarLivePagination();
         }
         function preencherOrgao() { }
@@ -2777,7 +2657,6 @@
             protocolo: ""
           };
           try {
-            if (!window.db) throw new Error('Modo offline');
             await addDoc(collection(db, "oficios"), novo);
             mostrarMensagem('Ofício salvo na nuvem!', 'success');
             // Auto-print after save
@@ -2785,13 +2664,7 @@
             limparFormulario();
           } catch (e) {
             console.error(e);
-            if (e.message.includes('offline') || e.message.includes('Firestore')) {
-              mostrarMensagem('Sistema offline - ofício não salvo na nuvem. Use PDF/impressão.', 'warning');
-              await imprimirOficio();
-              limparFormulario();
-            } else {
-              alert("Erro ao salvar ofício: " + e.message);
-            }
+            alert("Erro ao salvar ofício: " + e.message);
           }
         }
 
