@@ -1701,6 +1701,7 @@
               <button class="btn btn-sm btn-secondary" onclick="limparFormulario()">Limpar</button>
               <button class="btn btn-sm btn-warning" onclick="imprimirOficio()">Imprimir</button>
               <button class="btn btn-sm btn-success" onclick="gerarPDF()">PDF</button>
+              <button class="btn btn-sm btn-primary" onclick="gerarPDFSimplificado()" style="background: #059669;">📄 PDF Fix</button>
               <button class="btn btn-sm btn-secondary" onclick="testarPDF()" style="background: #dc2626; color: white;">🧪 Teste</button>
               <button class="btn btn-sm btn-primary" onclick="gerarOficio()" id="btnGerarOficio">Salvar</button>
               <button type="button" class="btn-tool" onclick="toggleSidebar()" id="btnToggleSidebar" title="Painel lateral">☰</button>
@@ -2577,6 +2578,133 @@
           return criarCabecalhoPadrao();
         }
 
+        // NOVA FUNÇÃO DE PDF SIMPLIFICADA - IGNORANDO PROBLEMAS DA ATUAL
+        window.gerarPDFSimplificado = async function() {
+          console.log('=== INICIANDO PDF SIMPLIFICADO ===');
+          
+          try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF("p", "mm", "a4");
+            
+            // Configurações da página
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 20;
+            const lineHeight = 6;
+            let currentY = margin;
+            
+            // CABEÇALHO
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(margin, currentY, pageWidth - 2*margin, 25, 'F');
+            
+            pdf.setFontSize(16);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("PREFEITURA MUNICIPAL DE RONDONÓPOLIS", pageWidth/2, currentY + 8, {align: 'center'});
+            
+            pdf.setFontSize(12);
+            pdf.setFont("helvetica", "normal");
+            pdf.text("Estado de Mato Grosso", pageWidth/2, currentY + 15, {align: 'center'});
+            pdf.text("Avenida Duque de Caxias, 1000 - Vila Aurora - CEP 78740-022", pageWidth/2, currentY + 21, {align: 'center'});
+            
+            currentY += 35;
+            
+            // DADOS DO OFÍCIO
+            pdf.setFontSize(12);
+            pdf.setFont("helvetica", "bold");
+            
+            const numeroOficio = document.getElementById('numeroOficio')?.value || 'XXX/2026';
+            const dataOficio = document.getElementById('dataOficio')?.value || new Date().toLocaleDateString('pt-BR');
+            const assuntoOficio = document.getElementById('assuntoOficio')?.value || 'ASSUNTO NÃO INFORMADO';
+            
+            pdf.text(`OFÍCIO: ${numeroOficio}`, margin, currentY);
+            pdf.text(`Rondonópolis, ${dataOficio}`, pageWidth - margin, currentY, {align: 'right'});
+            currentY += lineHeight * 2;
+            
+            // DESTINATÁRIO
+            pdf.setFont("helvetica", "bold");
+            let destinatarioTexto = "DESTINATÁRIO NÃO SELECIONADO";
+            let enderecoTexto = "ENDEREÇO NÃO DISPONÍVEL";
+            
+            if (selectedOrgaosList && selectedOrgaosList.length > 0) {
+              destinatarioTexto = selectedOrgaosList[0].nome || "NOME NÃO DISPONÍVEL";
+              enderecoTexto = selectedOrgaosList[0].endereco || "ENDEREÇO NÃO DISPONÍVEL";
+            }
+            
+            pdf.text("Para: ", margin, currentY);
+            pdf.setFont("helvetica", "normal");
+            pdf.text(destinatarioTexto, margin + 15, currentY);
+            currentY += lineHeight;
+            
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Endereço: ", margin, currentY);
+            pdf.setFont("helvetica", "normal");
+            
+            // Quebrar endereço em linhas se necessário
+            const enderecoLinhas = pdf.splitTextToSize(enderecoTexto, pageWidth - margin - 30);
+            pdf.text(enderecoLinhas, margin + 25, currentY);
+            currentY += enderecoLinhas.length * lineHeight + lineHeight;
+            
+            // ASSUNTO
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Assunto: ", margin, currentY);
+            pdf.setFont("helvetica", "normal");
+            
+            const assuntoLinhas = pdf.splitTextToSize(assuntoOficio, pageWidth - margin - 25);
+            pdf.text(assuntoLinhas, margin + 20, currentY);
+            currentY += assuntoLinhas.length * lineHeight + lineHeight;
+            
+            // SAUDAÇÃO
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Prezado(a) Senhor(a),", margin, currentY);
+            currentY += lineHeight * 2;
+            
+            // CONTEÚDO
+            pdf.setFont("helvetica", "normal");
+            let conteudoTexto = "CONTEÚDO NÃO INFORMADO";
+            
+            try {
+              const textoHtml = getTextoHTML();
+              if (textoHtml && textoHtml.trim()) {
+                // Remover tags HTML básicas
+                conteudoTexto = textoHtml
+                  .replace(/<[^>]*>/g, '') // Remove tags HTML
+                  .replace(/&nbsp;/g, ' ') // Replace &nbsp; com espaço
+                  .replace(/&[^;]+;/g, '') // Remove outras entidades HTML
+                  .trim();
+              }
+            } catch (e) {
+              console.log('Erro ao obter texto:', e);
+            }
+            
+            const conteudoLinhas = pdf.splitTextToSize(conteudoTexto, pageWidth - 2*margin);
+            pdf.text(conteudoLinhas, margin, currentY);
+            currentY += conteudoLinhas.length * lineHeight;
+            
+            // RODAPÉ (se houver espaço)
+            if (currentY < pageHeight - 40) {
+              pdf.setFillColor(240, 240, 240);
+              pdf.rect(margin, pageHeight - 30, pageWidth - 2*margin, 20, 'F');
+              
+              pdf.setFontSize(10);
+              pdf.setFont("helvetica", "bold");
+              pdf.text("Prefeitura Municipal de Rondonópolis – MT", pageWidth/2, pageHeight - 22, {align: 'center'});
+              pdf.setFont("helvetica", "normal");
+              pdf.text("Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022", pageWidth/2, pageHeight - 17, {align: 'center'});
+            }
+            
+            // Salvar PDF
+            const nomeArquivo = `Oficio_${numeroOficio.replace(/\//g, '_')}.pdf`;
+            pdf.save(nomeArquivo);
+            
+            console.log('=== PDF GERADO COM SUCESSO ===');
+            mostrarMensagem('📄 PDF gerado com sucesso!', 'success');
+            
+          } catch (error) {
+            console.error('Erro ao gerar PDF simplificado:', error);
+            mostrarMensagem('Erro ao gerar PDF: ' + error.message, 'error');
+          }
+        }
+
         // FUNÇÃO DE TESTE PARA DEBUG
         window.testarPDF = function() {
           console.log('=== TESTE DE GERAÇÃO PDF ===');
@@ -2849,74 +2977,142 @@
         }
 
         async function gerarPDF(oficio = null) {
+          console.log('=== GERANDO PDF (VERSÃO CORRIGIDA) ===');
+          
           try {
-            // Sempre popula os dados básicos primeiro
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF("p", "mm", "a4");
+            
+            // Configurações da página
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 20;
+            const lineHeight = 6;
+            let currentY = margin;
+            
+            // === CABEÇALHO ===
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(margin, currentY, pageWidth - 2*margin, 25, 'F');
+            
+            pdf.setFontSize(16);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("PREFEITURA MUNICIPAL DE RONDONÓPOLIS", pageWidth/2, currentY + 8, {align: 'center'});
+            
+            pdf.setFontSize(12);
+            pdf.setFont("helvetica", "normal");
+            pdf.text("Estado de Mato Grosso", pageWidth/2, currentY + 15, {align: 'center'});
+            pdf.text("Avenida Duque de Caxias, 1000 - Vila Aurora - CEP 78740-022", pageWidth/2, currentY + 21, {align: 'center'});
+            
+            currentY += 35;
+            
+            // === DADOS DO OFÍCIO ===
+            let numeroOficio, dataOficio, assuntoTexto, destinatarioTexto, enderecoTexto, conteudoTexto;
+            
             if (oficio) {
-              // Configurar dados do histórico
-              document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
-              document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
-
-              const container = document.getElementById('previewDestinatariosPdf');
-              if (oficio.destinatarios && Array.from(oficio.destinatarios).length > 0) {
-                container.innerHTML = oficio.destinatarios.map(org => `
-                  <div style="margin-bottom: 0.8rem;">
-                    <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-                    <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
-                  </div>
-                `).join('');
-              } else {
-                const org = orgaos.find(o => o.nome === oficio.destinatario);
-                container.innerHTML = `
-                  <div style="margin-bottom: 0.8rem;">
-                    <div class="oficio-para"><span class="label">Para:</span> <span>${oficio.destinatario}</span></div>
-                    <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org ? org.endereco : ''}</span></div>
-                  </div>
-                `;
+              // Dados do histórico
+              numeroOficio = oficio.numero || 'XXX/2026';
+              dataOficio = oficio.dataCompleta || new Date().toLocaleDateString('pt-BR');
+              assuntoTexto = oficio.assunto || 'ASSUNTO NÃO INFORMADO';
+              destinatarioTexto = oficio.destinatario || 'DESTINATÁRIO NÃO INFORMADO';
+              
+              // Buscar endereço do destinatário
+              const orgaoEncontrado = orgaos.find(o => o.nome === oficio.destinatario);
+              enderecoTexto = orgaoEncontrado ? orgaoEncontrado.endereco : 'ENDEREÇO NÃO DISPONÍVEL';
+              
+              // Texto do ofício
+              conteudoTexto = oficio.texto || 'CONTEÚDO NÃO INFORMADO';
+              if (conteudoTexto.includes('<')) {
+                conteudoTexto = conteudoTexto.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&[^;]+;/g, '').trim();
               }
-
-              document.getElementById('previewAssunto').textContent = oficio.assunto;
-              document.getElementById('previewTexto').innerHTML = oficio.texto;
+              
             } else {
-              // Para ofícios novos, popular mesmo sem validação completa
-              console.log('Populando dados para ofício novo...');
-              popularPreviewPdf();
-            }
-
-            // Garantir que preview esteja visível
-            document.getElementById('previewSection').style.display = 'block';
-            // Configurar cabeçalho - garantir que sempre funcione
-            applyHeaderSource();
-            
-            // Aguardar um momento para a imagem tentar carregar
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Usar função que garante cabeçalho válido
-            const headerDataUrl = garantirCabecalhoValido();
-
-            const root = buildPrintRoot();
-            try {
-              const pages = paginateIntoPagesFixed(root, headerDataUrl);
-              const { jsPDF } = window.jspdf;
-              const pdf = new jsPDF("p", "mm", "a4");
-              const pageWmm = 210; const pageHmm = 297;
-              for (let i = 0; i < pages.length; i++) {
-                const canvas = await renderPageToCanvas(pages[i]);
-                const imgData = canvas.toDataURL("image/jpeg", 0.92);
-                if (i > 0) pdf.addPage();
-                pdf.addImage(imgData, "JPEG", 0, 0, pageWmm, pageHmm);
+              // Dados do formulário atual
+              numeroOficio = document.getElementById('numeroOficio')?.value || 'XXX/2026';
+              dataOficio = document.getElementById('dataOficio')?.value || new Date().toLocaleDateString('pt-BR');
+              assuntoTexto = document.getElementById('assuntoOficio')?.value || 'ASSUNTO NÃO INFORMADO';
+              
+              if (selectedOrgaosList && selectedOrgaosList.length > 0) {
+                destinatarioTexto = selectedOrgaosList[0].nome || "DESTINATÁRIO NÃO DISPONÍVEL";
+                enderecoTexto = selectedOrgaosList[0].endereco || "ENDEREÇO NÃO DISPONÍVEL";
+              } else {
+                destinatarioTexto = "DESTINATÁRIO NÃO SELECIONADO";
+                enderecoTexto = "SELECIONE UM DESTINATÁRIO";
               }
-              const nome = (oficio?.numero || document.getElementById('numeroOficio').value).replaceAll('/', '_');
-              pdf.save(`Oficio_${nome}.pdf`);
-              mostrarMensagem('📄 PDF baixado!', 'success');
-            } catch (e) {
-              console.error('Erro ao gerar PDF:', e); 
-              mostrarMensagem('Erro ao gerar PDF. Verifique os dados.', 'error');
-            } finally {
-              removePrintRoot(root);
+              
+              try {
+                const textoHtml = getTextoHTML();
+                if (textoHtml && textoHtml.trim()) {
+                  conteudoTexto = textoHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&[^;]+;/g, '').trim();
+                } else {
+                  conteudoTexto = 'CONTEÚDO NÃO INFORMADO';
+                }
+              } catch (e) {
+                conteudoTexto = 'ERRO AO OBTER CONTEÚDO';
+              }
             }
+            
+            // === CABEÇALHO DO OFÍCIO ===
+            pdf.setFontSize(12);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`OFÍCIO: ${numeroOficio}`, margin, currentY);
+            pdf.text(`Rondonópolis, ${dataOficio}`, pageWidth - margin, currentY, {align: 'right'});
+            currentY += lineHeight * 2;
+            
+            // === DESTINATÁRIO ===
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Para: ", margin, currentY);
+            pdf.setFont("helvetica", "normal");
+            pdf.text(destinatarioTexto, margin + 15, currentY);
+            currentY += lineHeight;
+            
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Endereço: ", margin, currentY);
+            pdf.setFont("helvetica", "normal");
+            const enderecoLinhas = pdf.splitTextToSize(enderecoTexto, pageWidth - margin - 30);
+            pdf.text(enderecoLinhas, margin + 25, currentY);
+            currentY += enderecoLinhas.length * lineHeight + lineHeight;
+            
+            // === ASSUNTO ===
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Assunto: ", margin, currentY);
+            pdf.setFont("helvetica", "normal");
+            const assuntoLinhas = pdf.splitTextToSize(assuntoTexto, pageWidth - margin - 25);
+            pdf.text(assuntoLinhas, margin + 20, currentY);
+            currentY += assuntoLinhas.length * lineHeight + lineHeight;
+            
+            // === SAUDAÇÃO ===
+            pdf.setFont("helvetica", "bold");
+            pdf.text("Prezado(a) Senhor(a),", margin, currentY);
+            currentY += lineHeight * 2;
+            
+            // === CONTEÚDO ===
+            pdf.setFont("helvetica", "normal");
+            const conteudoLinhas = pdf.splitTextToSize(conteudoTexto, pageWidth - 2*margin);
+            pdf.text(conteudoLinhas, margin, currentY);
+            currentY += conteudoLinhas.length * lineHeight;
+            
+            // === RODAPÉ ===
+            if (currentY < pageHeight - 40) {
+              pdf.setFillColor(240, 240, 240);
+              pdf.rect(margin, pageHeight - 30, pageWidth - 2*margin, 20, 'F');
+              
+              pdf.setFontSize(10);
+              pdf.setFont("helvetica", "bold");
+              pdf.text("Prefeitura Municipal de Rondonópolis – MT", pageWidth/2, pageHeight - 22, {align: 'center'});
+              pdf.setFont("helvetica", "normal");
+              pdf.text("Avenida Duque de Caxias, 1000, Vila Aurora, CEP 78740-022", pageWidth/2, pageHeight - 17, {align: 'center'});
+            }
+            
+            // === SALVAR ===
+            const nomeArquivo = `Oficio_${numeroOficio.replace(/\//g, '_')}.pdf`;
+            pdf.save(nomeArquivo);
+            
+            console.log('=== PDF GERADO COM SUCESSO ===');
+            mostrarMensagem('📄 PDF baixado!', 'success');
+            
           } catch (error) {
-            console.error('Erro na função gerarPDF:', error);
-            mostrarMensagem('Erro ao preparar PDF. Verifique se todos os campos estão preenchidos.', 'error');
+            console.error('Erro ao gerar PDF:', error);
+            mostrarMensagem('Erro ao gerar PDF: ' + error.message, 'error');
           }
         }
 
