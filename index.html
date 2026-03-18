@@ -2312,6 +2312,13 @@
 
         /* Preview & Generating - popula o preview oculto para PDF/impressão */
         function popularPreviewPdf() {
+          // Debug: verificar se os dados estão disponíveis
+          console.log('Populando preview PDF...', {
+            selectedOrgaos: selectedOrgaosList.length,
+            assunto: document.getElementById('assuntoOficio').value,
+            texto: getTextoHTML().length
+          });
+
           applyHeaderSource();
           const headerImgPdf = document.getElementById('headerImgPdf');
           const headerImgMain = document.getElementById('headerImg');
@@ -2322,16 +2329,26 @@
 
           const container = document.getElementById('previewDestinatariosPdf');
           if (container) {
-            container.innerHTML = selectedOrgaosList.map(org => `
-              <div style="margin-bottom: 0.8rem;">
-                <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-                <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
-              </div>
-            `).join('');
+            if (selectedOrgaosList.length > 0) {
+              container.innerHTML = selectedOrgaosList.map(org => `
+                <div style="margin-bottom: 0.8rem;">
+                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+                </div>
+              `).join('');
+            } else {
+              // Fallback se não há órgãos selecionados
+              container.innerHTML = `
+                <div style="margin-bottom: 0.8rem;">
+                  <div class="oficio-para"><span class="label">Para:</span> <span>DESTINATÁRIO NÃO SELECIONADO</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>ENDEREÇO NÃO DISPONÍVEL</span></div>
+                </div>
+              `;
+            }
           }
 
-          document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value;
-          document.getElementById('previewTexto').innerHTML = getTextoHTML();
+          document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value || 'ASSUNTO NÃO INFORMADO';
+          document.getElementById('previewTexto').innerHTML = getTextoHTML() || '<p>TEXTO NÃO INFORMADO</p>';
         }
 
         function visualizarPrevia() {
@@ -2644,69 +2661,74 @@
         }
 
         async function gerarPDF(oficio = null) {
-          if (oficio) {
-            // Removido: configuração de assinaturas para paginação
-
-            document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
-            document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
-
-            const container = document.getElementById('previewDestinatariosPdf');
-            if (oficio.destinatarios && Array.from(oficio.destinatarios).length > 0) {
-              container.innerHTML = oficio.destinatarios.map(org => `
-                <div style="margin-bottom: 0.8rem;">
-                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
-                </div>
-              `).join('');
-            } else {
-              const org = orgaos.find(o => o.nome === oficio.destinatario);
-              container.innerHTML = `
-                <div style="margin-bottom: 0.8rem;">
-                  <div class="oficio-para"><span class="label">Para:</span> <span>${oficio.destinatario}</span></div>
-                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org ? org.endereco : ''}</span></div>
-                </div>
-              `;
-            }
-
-            document.getElementById('previewAssunto').textContent = oficio.assunto;
-            document.getElementById('previewTexto').innerHTML = oficio.texto;
-            // Assinaturas inseridas dinamicamente durante paginação
-            document.getElementById('previewSection').style.display = 'block';
-            // Sync header img
-            const headerImgPdf = document.getElementById('headerImgPdf');
-            const headerImgMain = document.getElementById('headerImg');
-            if (headerImgPdf && headerImgMain) headerImgPdf.src = headerImgMain.src;
-          } else {
-            if (!validarFormulario()) return;
-            popularPreviewPdf();
-            document.getElementById('previewSection').style.display = 'block';
-          }
-          applyHeaderSource();
-          const headerImgEl = document.getElementById("headerImg");
-          await waitImg(headerImgEl);
-          let headerDataUrl = imgToDataURL(headerImgEl);
-          if (!headerDataUrl) {
-            headerDataUrl = criarCabecalhoPadrao();
-          }
-          const root = buildPrintRoot();
           try {
-            const pages = paginateIntoPagesFixed(root, headerDataUrl);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF("p", "mm", "a4");
-            const pageWmm = 210; const pageHmm = 297;
-            for (let i = 0; i < pages.length; i++) {
-              const canvas = await renderPageToCanvas(pages[i]);
-              const imgData = canvas.toDataURL("image/jpeg", 0.92);
-              if (i > 0) pdf.addPage();
-              pdf.addImage(imgData, "JPEG", 0, 0, pageWmm, pageHmm);
+            // Sempre popula os dados básicos primeiro
+            if (oficio) {
+              // Configurar dados do histórico
+              document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${oficio.numero}`;
+              document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${oficio.dataCompleta}`;
+
+              const container = document.getElementById('previewDestinatariosPdf');
+              if (oficio.destinatarios && Array.from(oficio.destinatarios).length > 0) {
+                container.innerHTML = oficio.destinatarios.map(org => `
+                  <div style="margin-bottom: 0.8rem;">
+                    <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
+                    <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+                  </div>
+                `).join('');
+              } else {
+                const org = orgaos.find(o => o.nome === oficio.destinatario);
+                container.innerHTML = `
+                  <div style="margin-bottom: 0.8rem;">
+                    <div class="oficio-para"><span class="label">Para:</span> <span>${oficio.destinatario}</span></div>
+                    <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org ? org.endereco : ''}</span></div>
+                  </div>
+                `;
+              }
+
+              document.getElementById('previewAssunto').textContent = oficio.assunto;
+              document.getElementById('previewTexto').innerHTML = oficio.texto;
+            } else {
+              // Validar apenas se for ofício novo
+              if (!validarFormulario()) return;
+              popularPreviewPdf();
             }
-            const nome = (oficio?.numero || document.getElementById('numeroOficio').value).replaceAll('/', '_');
-            pdf.save(`Oficio_${nome}.pdf`);
-            mostrarMensagem('📄 PDF baixado!', 'success');
-          } catch (e) {
-            console.error(e); mostrarMensagem('Erro ao gerar PDF.', 'error');
-          } finally {
-            removePrintRoot(root);
+
+            // Garantir que preview esteja visível
+            document.getElementById('previewSection').style.display = 'block';
+            // Configurar cabeçalho
+            applyHeaderSource();
+            const headerImgEl = document.getElementById("headerImg");
+            await waitImg(headerImgEl);
+            let headerDataUrl = imgToDataURL(headerImgEl);
+            if (!headerDataUrl) {
+              headerDataUrl = criarCabecalhoPadrao();
+            }
+
+            const root = buildPrintRoot();
+            try {
+              const pages = paginateIntoPagesFixed(root, headerDataUrl);
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF("p", "mm", "a4");
+              const pageWmm = 210; const pageHmm = 297;
+              for (let i = 0; i < pages.length; i++) {
+                const canvas = await renderPageToCanvas(pages[i]);
+                const imgData = canvas.toDataURL("image/jpeg", 0.92);
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, "JPEG", 0, 0, pageWmm, pageHmm);
+              }
+              const nome = (oficio?.numero || document.getElementById('numeroOficio').value).replaceAll('/', '_');
+              pdf.save(`Oficio_${nome}.pdf`);
+              mostrarMensagem('📄 PDF baixado!', 'success');
+            } catch (e) {
+              console.error('Erro ao gerar PDF:', e); 
+              mostrarMensagem('Erro ao gerar PDF. Verifique os dados.', 'error');
+            } finally {
+              removePrintRoot(root);
+            }
+          } catch (error) {
+            console.error('Erro na função gerarPDF:', error);
+            mostrarMensagem('Erro ao preparar PDF. Verifique se todos os campos estão preenchidos.', 'error');
           }
         }
 
