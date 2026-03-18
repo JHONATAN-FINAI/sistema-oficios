@@ -1701,6 +1701,7 @@
               <button class="btn btn-sm btn-secondary" onclick="limparFormulario()">Limpar</button>
               <button class="btn btn-sm btn-warning" onclick="imprimirOficio()">Imprimir</button>
               <button class="btn btn-sm btn-success" onclick="gerarPDF()">PDF</button>
+              <button class="btn btn-sm btn-secondary" onclick="testarPDF()" style="background: #dc2626; color: white;">🧪 Teste</button>
               <button class="btn btn-sm btn-primary" onclick="gerarOficio()" id="btnGerarOficio">Salvar</button>
               <button type="button" class="btn-tool" onclick="toggleSidebar()" id="btnToggleSidebar" title="Painel lateral">☰</button>
             </div>
@@ -2366,31 +2367,62 @@
 
         /* Preview & Generating - popula o preview oculto para PDF/impressão */
         function popularPreviewPdf() {
+          console.log('=== Populando Preview PDF ===');
+          
+          // Aplicar cabeçalho
           applyHeaderSource();
           const headerImgPdf = document.getElementById('headerImgPdf');
           const headerImgMain = document.getElementById('headerImg');
           if (headerImgPdf && headerImgMain) headerImgPdf.src = headerImgMain.src;
 
-          document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${document.getElementById('numeroOficio').value}`;
-          document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${document.getElementById('dataOficio').value}`;
+          // Número e Data
+          const numeroField = document.getElementById('numeroOficio');
+          const dataField = document.getElementById('dataOficio');
+          const numeroTexto = numeroField ? numeroField.value || 'NÃO INFORMADO' : 'NÃO INFORMADO';
+          const dataTexto = dataField ? dataField.value || new Date().toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+          
+          document.getElementById('previewNumeroHeader').textContent = `OFÍCIO: ${numeroTexto}`;
+          document.getElementById('previewDataHeader').textContent = `Rondonópolis, ${dataTexto}`;
+          
+          console.log('Número:', numeroTexto);
+          console.log('Data:', dataTexto);
 
+          // Destinatários
           const container = document.getElementById('previewDestinatariosPdf');
+          console.log('Órgãos selecionados:', selectedOrgaosList);
+          
           if (container) {
-            if (selectedOrgaosList.length > 0) {
+            if (selectedOrgaosList && selectedOrgaosList.length > 0) {
               container.innerHTML = selectedOrgaosList.map(org => `
                 <div style="margin-bottom: 0.8rem;">
-                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome}</span></div>
-                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco}</span></div>
+                  <div class="oficio-para"><span class="label">Para:</span> <span>${org.nome || 'NOME NÃO DEFINIDO'}</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>${org.endereco || 'ENDEREÇO NÃO DEFINIDO'}</span></div>
                 </div>
               `).join('');
             } else {
-              container.innerHTML = '';
+              // Fallback quando não há órgãos selecionados
+              container.innerHTML = `
+                <div style="margin-bottom: 0.8rem;">
+                  <div class="oficio-para"><span class="label">Para:</span> <span>DESTINATÁRIO NÃO SELECIONADO</span></div>
+                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>SELECIONE UM DESTINATÁRIO</span></div>
+                </div>
+              `;
             }
           }
 
+          // Assunto
           const assuntoField = document.getElementById('assuntoOficio');
-          document.getElementById('previewAssunto').textContent = assuntoField ? assuntoField.value : '';
-          document.getElementById('previewTexto').innerHTML = getTextoHTML();
+          const assuntoTexto = assuntoField ? (assuntoField.value || 'ASSUNTO NÃO INFORMADO') : 'ASSUNTO NÃO INFORMADO';
+          document.getElementById('previewAssunto').textContent = assuntoTexto;
+          console.log('Assunto:', assuntoTexto);
+
+          // Texto
+          const textoHtml = getTextoHTML();
+          const textoFinal = textoHtml || '<p>CONTEÚDO NÃO INFORMADO</p>';
+          document.getElementById('previewTexto').innerHTML = textoFinal;
+          console.log('Texto HTML:', textoFinal.substring(0, 100) + '...');
+          
+          console.log('=== Preview Populado ===');
         }
 
         function visualizarPrevia() {
@@ -2543,6 +2575,74 @@
           // Por enquanto, sempre usar cabeçalho padrão para evitar problemas de CORS
           console.log("Usando cabeçalho padrão criado programaticamente");
           return criarCabecalhoPadrao();
+        }
+
+        // FUNÇÃO DE TESTE PARA DEBUG
+        window.testarPDF = function() {
+          console.log('=== TESTE DE GERAÇÃO PDF ===');
+          
+          // Verificar elementos básicos
+          console.log('Número:', document.getElementById('numeroOficio')?.value);
+          console.log('Data:', document.getElementById('dataOficio')?.value);
+          console.log('Assunto:', document.getElementById('assuntoOficio')?.value);
+          console.log('Órgãos selecionados:', selectedOrgaosList);
+          console.log('Texto HTML:', getTextoHTML());
+          
+          // Forçar população do preview
+          document.getElementById('previewNumeroHeader').textContent = 'OFÍCIO: TESTE 001/2026';
+          document.getElementById('previewDataHeader').textContent = 'Rondonópolis, 18 de março de 2026';
+          document.getElementById('previewAssunto').textContent = 'TESTE DE GERAÇÃO DE PDF';
+          
+          // Forçar destinatários
+          document.getElementById('previewDestinatariosPdf').innerHTML = `
+            <div style="margin-bottom: 0.8rem;">
+              <div class="oficio-para"><span class="label">Para:</span> <span>SECRETARIA DE TESTE</span></div>
+              <div class="oficio-endereco"><span class="label">Endereço:</span> <span>Endereço de teste, 123</span></div>
+            </div>
+          `;
+          
+          // Forçar texto
+          document.getElementById('previewTexto').innerHTML = '<p>Este é um teste de geração de PDF para verificar se todos os elementos aparecem corretamente.</p>';
+          
+          // Mostrar preview
+          document.getElementById('previewSection').style.display = 'block';
+          
+          console.log('Preview populado, iniciando geração PDF...');
+          
+          // Gerar PDF direto
+          gerarPDFTeste();
+        }
+
+        async function gerarPDFTeste() {
+          try {
+            const headerDataUrl = criarCabecalhoPadrao();
+            console.log('Cabeçalho criado:', headerDataUrl.substring(0, 50) + '...');
+            
+            const root = buildPrintRoot();
+            console.log('Root criado:', root);
+            
+            const pages = paginateIntoPagesFixed(root, headerDataUrl);
+            console.log('Páginas criadas:', pages.length);
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF("p", "mm", "a4");
+            console.log('jsPDF inicializado');
+            
+            for (let i = 0; i < pages.length; i++) {
+              console.log('Processando página', i + 1);
+              const canvas = await renderPageToCanvas(pages[i]);
+              const imgData = canvas.toDataURL("image/jpeg", 0.92);
+              if (i > 0) pdf.addPage();
+              pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+            }
+            
+            pdf.save(`Teste_PDF.pdf`);
+            console.log('PDF gerado com sucesso!');
+            removePrintRoot(root);
+            
+          } catch (error) {
+            console.error('Erro no teste:', error);
+          }
         }
 
         /* PDF / PRINT LOGIC */
@@ -2777,8 +2877,8 @@
               document.getElementById('previewAssunto').textContent = oficio.assunto;
               document.getElementById('previewTexto').innerHTML = oficio.texto;
             } else {
-              // Validar apenas se for ofício novo
-              if (!validarFormulario()) return;
+              // Para ofícios novos, popular mesmo sem validação completa
+              console.log('Populando dados para ofício novo...');
               popularPreviewPdf();
             }
 
