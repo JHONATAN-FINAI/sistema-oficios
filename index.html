@@ -1928,7 +1928,7 @@
                   <p class="no-indent"><strong>Prezado(a) Senhor(a),</strong></p>
                   <div id="previewTexto">---</div>
                 </div>
-                <div class="oficio-assinatura" id="previewAssinaturasPdf"></div>
+                <!-- Assinaturas inseridas dinamicamente na paginação -->
               </div>
               <div class="oficio-footer">
                 <div class="footer-linha1">Prefeitura Municipal de Rondonópolis – MT</div>
@@ -2077,7 +2077,7 @@
 
       <script>
         // --- VARIABLES ---
-        const HEADER_URL_DEFAULT = "https://advantagemidia.com/wp-content/uploads/2026/01/WhatsApp-Image-2026-01-15-at-10.31.14.jpeg";
+        const HEADER_URL_DEFAULT = "https://raw.githubusercontent.com/JHONATAN-FINAI/assets-prefeitura-rondonopolis/main/SECRETARIA%20MUNICIPAL%20DE%20ADMINISTRA%C3%87%C3%83O%2C%20GEST%C3%83O%20DE%20PESSOAS%20E%20INOVA%C3%87%C3%83O.png";
         const STORAGE_KEY = null; // Deprecated
         const STORAGE_HEADER = "sistemaoficios_header_datauri_v1";
 
@@ -2230,21 +2230,13 @@
           const img = document.getElementById("headerImg");
           if (!img) return;
 
-          // Check for a one-time force reset to ensure new URL is picked up
-          const RESET_FLAG = "reset_header_2026_01_15";
-          if (!safeStorage.get(RESET_FLAG)) {
-            safeStorage.set(STORAGE_HEADER, "");
-            safeStorage.set(RESET_FLAG, "done");
-          }
-
           const dataUri = safeStorage.get(STORAGE_HEADER);
           if (dataUri && dataUri.startsWith("data:image")) {
+            // Usar cabeçalho personalizado carregado pelo usuário
             img.removeAttribute("crossOrigin");
             img.src = dataUri;
           } else {
-            // Default image (Remote or Local)
-            // REMOVED crossOrigin="anonymous" because the server advantagemidia.com DOES NOT support CORS.
-            // This allows the image to show in the browser, though it may still affect PDF/Print stability.
+            // Usar cabeçalho do GitHub
             img.removeAttribute("crossOrigin");
             img.src = HEADER_URL_DEFAULT + "?v=" + Date.now();
           }
@@ -2585,10 +2577,7 @@
 
           document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value;
           document.getElementById('previewTexto').innerHTML = getTextoHTML();
-          // Assinaturas no preview simples - mostrar todas (paginação real é feita em paginateIntoPagesFixed)
-          const assSel = obterAssinaturasSelecionadas();
-          document.getElementById('previewAssinaturasPdf').innerHTML =
-            assSel.map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
+          // Assinaturas inseridas dinamicamente durante paginação
         }
 
         function visualizarPrevia() {
@@ -2991,7 +2980,7 @@
 
             document.getElementById('previewAssunto').textContent = oficio.assunto;
             document.getElementById('previewTexto').innerHTML = oficio.texto;
-            document.getElementById('previewAssinaturasPdf').innerHTML = (oficio.assinaturas || []).map(a => `<div class="assinatura-bloco"><div class="assinatura-nome-preview">${a.nome}</div><div class="assinatura-cargo-preview">${a.cargo}</div></div>`).join('');
+            // Assinaturas inseridas dinamicamente durante paginação
             document.getElementById('previewSection').style.display = 'block';
             // Sync header img
             const headerImgPdf = document.getElementById('headerImgPdf');
