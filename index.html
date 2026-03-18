@@ -767,6 +767,20 @@
       flex: 0 0 auto;
     }
 
+    /* CSS para quebra de página em tabelas */
+    @media print {
+      table {
+        page-break-inside: auto;
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+      td {
+        page-break-inside: avoid;
+      }
+    }
+
     .footer-linha1 {
       font-weight: 700;
     }
@@ -2035,9 +2049,24 @@
             img.removeAttribute("crossOrigin");
             img.src = dataUri;
           } else {
-            // Usar cabeçalho do GitHub
-            img.removeAttribute("crossOrigin");
-            img.src = HEADER_URL_DEFAULT + "?v=" + Date.now();
+            // Usar cabeçalho do GitHub com configuração de CORS
+            try {
+              img.crossOrigin = "anonymous";
+              img.src = HEADER_URL_DEFAULT + "?v=" + Date.now();
+              
+              // Fallback se a imagem não carregar em 3 segundos
+              setTimeout(() => {
+                if (!img.complete || img.naturalWidth === 0) {
+                  console.log("Timeout no carregamento da imagem, usando cabeçalho padrão");
+                  // Criar uma nova imagem com o cabeçalho padrão
+                  const defaultHeader = criarCabecalhoPadrao();
+                  img.src = defaultHeader;
+                }
+              }, 3000);
+            } catch (error) {
+              console.log("Erro ao configurar imagem, usando cabeçalho padrão");
+              img.src = criarCabecalhoPadrao();
+            }
           }
         }
 
@@ -2303,22 +2332,40 @@
         /* Validação */
         function validarFormulario() {
           let ok = true;
-          if (selectedOrgaosList.length === 0) { document.getElementById('orgaoError').style.display = 'block'; ok = false; } else document.getElementById('orgaoError').style.display = 'none';
-          if (!document.getElementById('assuntoOficio').value) { document.getElementById('assuntoError').style.display = 'block'; ok = false; } else document.getElementById('assuntoError').style.display = 'none';
-          const textoErr = document.getElementById('textoError');
-          if (!getTextoPlain().trim()) { if (textoErr) textoErr.style.display = 'block'; mostrarMensagem('Digite o texto do ofício.', 'warning'); ok = false; } else { if (textoErr) textoErr.style.display = 'none'; }
+          
+          // Relaxar validação se estivermos gerando PDF de ofício do histórico
+          const isHistoricoPdf = arguments.length > 0 && arguments[0] === 'historico';
+          
+          if (!isHistoricoPdf) {
+            if (selectedOrgaosList.length === 0) { 
+              document.getElementById('orgaoError').style.display = 'block'; 
+              ok = false; 
+            } else {
+              document.getElementById('orgaoError').style.display = 'none';
+            }
+            
+            if (!document.getElementById('assuntoOficio').value) { 
+              document.getElementById('assuntoError').style.display = 'block'; 
+              ok = false; 
+            } else {
+              document.getElementById('assuntoError').style.display = 'none';
+            }
+            
+            const textoErr = document.getElementById('textoError');
+            if (!getTextoPlain().trim()) { 
+              if (textoErr) textoErr.style.display = 'block'; 
+              mostrarMensagem('Digite o texto do ofício.', 'warning'); 
+              ok = false; 
+            } else { 
+              if (textoErr) textoErr.style.display = 'none'; 
+            }
+          }
+          
           return ok;
         }
 
         /* Preview & Generating - popula o preview oculto para PDF/impressão */
         function popularPreviewPdf() {
-          // Debug: verificar se os dados estão disponíveis
-          console.log('Populando preview PDF...', {
-            selectedOrgaos: selectedOrgaosList.length,
-            assunto: document.getElementById('assuntoOficio').value,
-            texto: getTextoHTML().length
-          });
-
           applyHeaderSource();
           const headerImgPdf = document.getElementById('headerImgPdf');
           const headerImgMain = document.getElementById('headerImg');
@@ -2337,18 +2384,13 @@
                 </div>
               `).join('');
             } else {
-              // Fallback se não há órgãos selecionados
-              container.innerHTML = `
-                <div style="margin-bottom: 0.8rem;">
-                  <div class="oficio-para"><span class="label">Para:</span> <span>DESTINATÁRIO NÃO SELECIONADO</span></div>
-                  <div class="oficio-endereco"><span class="label">Endereço:</span> <span>ENDEREÇO NÃO DISPONÍVEL</span></div>
-                </div>
-              `;
+              container.innerHTML = '';
             }
           }
 
-          document.getElementById('previewAssunto').textContent = document.getElementById('assuntoOficio').value || 'ASSUNTO NÃO INFORMADO';
-          document.getElementById('previewTexto').innerHTML = getTextoHTML() || '<p>TEXTO NÃO INFORMADO</p>';
+          const assuntoField = document.getElementById('assuntoOficio');
+          document.getElementById('previewAssunto').textContent = assuntoField ? assuntoField.value : '';
+          document.getElementById('previewTexto').innerHTML = getTextoHTML();
         }
 
         function visualizarPrevia() {
@@ -2362,15 +2404,9 @@
         async function imprimirOficio() {
           if (!validarFormulario()) return;
           popularPreviewPdf();
-          applyHeaderSource();
-          const headerImgEl = document.getElementById("headerImg");
-          await waitImg(headerImgEl);
           
-          let headerDataUrl = imgToDataURL(headerImgEl);
-          if (!headerDataUrl) {
-            // Criar cabeçalho padrão quando imagem falha
-            headerDataUrl = criarCabecalhoPadrao();
-          }
+          // Usar função que garante cabeçalho válido
+          const headerDataUrl = garantirCabecalhoValido();
 
           const root = buildPrintRoot();
           root.id = "__native_print_root__";
@@ -2464,25 +2500,49 @@
 
         function criarCabecalhoPadrao() {
           const c = document.createElement("canvas");
-          c.width = 1200;
-          c.height = 200;
+          c.width = 1400; // Aumentar resolução
+          c.height = 280; // Aumentar altura proporcionalmente
           const ctx = c.getContext("2d");
           
           // Fundo branco
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, c.width, c.height);
           
-          // Texto do cabeçalho
+          // Desenhar uma borda sutil
+          ctx.strokeStyle = "#e0e0e0";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, c.width - 20, c.height - 20);
+          
+          // Texto do cabeçalho com melhor formatação
           ctx.fillStyle = "#000000";
           ctx.textAlign = "center";
-          ctx.font = "bold 32px Arial";
-          ctx.fillText("PREFEITURA MUNICIPAL DE RONDONÓPOLIS", c.width/2, 60);
+          ctx.font = "bold 42px Arial";
+          ctx.fillText("PREFEITURA MUNICIPAL DE RONDONÓPOLIS", c.width/2, 80);
+          
+          ctx.font = "32px Arial";
+          ctx.fillStyle = "#333333";
+          ctx.fillText("Estado de Mato Grosso", c.width/2, 130);
+          
           ctx.font = "24px Arial";
-          ctx.fillText("Estado de Mato Grosso", c.width/2, 100);
-          ctx.font = "18px Arial";
-          ctx.fillText("Avenida Duque de Caxias, 1000 - Vila Aurora - CEP 78740-022", c.width/2, 140);
+          ctx.fillStyle = "#666666";
+          ctx.fillText("Avenida Duque de Caxias, 1000 - Vila Aurora - CEP 78740-022", c.width/2, 180);
+          
+          // Adicionar uma linha decorativa
+          ctx.strokeStyle = "#0470ee";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(c.width/2 - 300, 210);
+          ctx.lineTo(c.width/2 + 300, 210);
+          ctx.stroke();
           
           return c.toDataURL("image/jpeg", 0.95);
+        }
+
+        // Função para garantir que sempre temos um cabeçalho válido
+        function garantirCabecalhoValido() {
+          // Por enquanto, sempre usar cabeçalho padrão para evitar problemas de CORS
+          console.log("Usando cabeçalho padrão criado programaticamente");
+          return criarCabecalhoPadrao();
         }
 
         /* PDF / PRINT LOGIC */
@@ -2636,17 +2696,34 @@
             return { page: pg.page, content: pg.content, stack };
           }
 
-          // Fase 1: paginar conteúdo normalmente
+          // Fase 1: paginar conteúdo com lógica melhorada para tabelas
           let current = newPage();
           for (let i = 0; i < blocks.length; i++) {
             const candidate = blocks[i].cloneNode(true);
-            current.stack.appendChild(candidate);
-            if (current.stack.scrollHeight > current.content.clientHeight) {
-              current.stack.removeChild(candidate);
-              const next = newPage();
-              pagesData.push(current);
-              current = next;
+            
+            // Tratamento especial para tabelas
+            if (candidate.tagName === 'TABLE') {
+              // Tenta adicionar a tabela
               current.stack.appendChild(candidate);
+              
+              // Se não cabe e há outros elementos na página, move tabela para nova página
+              if (current.stack.scrollHeight > current.content.clientHeight && current.stack.children.length > 1) {
+                current.stack.removeChild(candidate);
+                const next = newPage();
+                pagesData.push(current);
+                current = next;
+                current.stack.appendChild(candidate);
+              }
+            } else {
+              // Lógica normal para outros elementos
+              current.stack.appendChild(candidate);
+              if (current.stack.scrollHeight > current.content.clientHeight) {
+                current.stack.removeChild(candidate);
+                const next = newPage();
+                pagesData.push(current);
+                current = next;
+                current.stack.appendChild(candidate);
+              }
             }
           }
           pagesData.push(current);
@@ -2657,7 +2734,18 @@
         }
 
         async function renderPageToCanvas(pageEl) {
-          return await html2canvas(pageEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+          // Configurações otimizadas para tabelas e conteúdo complexo
+          return await html2canvas(pageEl, { 
+            scale: 2, 
+            useCORS: true, 
+            backgroundColor: "#ffffff", 
+            logging: false,
+            allowTaint: true,
+            height: pageEl.offsetHeight,
+            width: pageEl.offsetWidth,
+            scrollX: 0,
+            scrollY: 0
+          });
         }
 
         async function gerarPDF(oficio = null) {
@@ -2696,14 +2784,14 @@
 
             // Garantir que preview esteja visível
             document.getElementById('previewSection').style.display = 'block';
-            // Configurar cabeçalho
+            // Configurar cabeçalho - garantir que sempre funcione
             applyHeaderSource();
-            const headerImgEl = document.getElementById("headerImg");
-            await waitImg(headerImgEl);
-            let headerDataUrl = imgToDataURL(headerImgEl);
-            if (!headerDataUrl) {
-              headerDataUrl = criarCabecalhoPadrao();
-            }
+            
+            // Aguardar um momento para a imagem tentar carregar
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Usar função que garante cabeçalho válido
+            const headerDataUrl = garantirCabecalhoValido();
 
             const root = buildPrintRoot();
             try {
